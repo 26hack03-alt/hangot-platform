@@ -14,8 +14,8 @@ async function exists(path: string): Promise<boolean> {
   }
 }
 
-// Packages Sites metadata after Vite finishes compiling. Production migrations
-// are deliberately excluded: remote D1 changes require a reviewed manual command.
+// Packages Sites metadata and only the reviewed Sites production migrations.
+// Historical Drizzle migrations remain outside the deployment artifact.
 export function sites(): Plugin {
   let root = process.cwd();
 
@@ -28,12 +28,19 @@ export function sites(): Plugin {
     async closeBundle() {
       const outputDirectory = resolve(root, "dist", ".openai");
       const hostingConfig = resolve(root, ".openai", "hosting.json");
+      const productionMigrations = resolve(root, "drizzle", "sites-production");
 
       await rm(outputDirectory, { recursive: true, force: true });
       await mkdir(outputDirectory, { recursive: true });
 
       if (await exists(hostingConfig)) {
         await cp(hostingConfig, resolve(outputDirectory, "hosting.json"));
+      }
+
+      if (await exists(productionMigrations)) {
+        await cp(productionMigrations, resolve(outputDirectory, "drizzle"), {
+          recursive: true,
+        });
       }
     },
   };

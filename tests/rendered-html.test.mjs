@@ -55,9 +55,9 @@ test("required API and privacy setup files exist", async () => {
   await Promise.all(required.map((path) => access(new URL(path, root))));
 });
 
-test("production build does not package D1 migrations for automatic execution", async () => {
+test("production build packages only reviewed Sites D1 migrations", async () => {
   const plugin = await read("build/sites-vite-plugin.ts");
-  assert.doesNotMatch(plugin, /resolve\(root, "drizzle"\)/);
-  assert.doesNotMatch(plugin, /resolve\(outputDirectory, "drizzle"\)/);
-  assert.match(plugin, /Production migrations[\s\S]*deliberately excluded/);
+  assert.match(plugin, /resolve\(root, "drizzle", "sites-production"\)/);
+  assert.match(plugin, /resolve\(outputDirectory, "drizzle"\)/);
+  assert.match(plugin, /only the reviewed Sites production migrations/);
 });

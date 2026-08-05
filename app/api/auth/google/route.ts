@@ -8,6 +8,14 @@ export async function GET(request: Request) {
     const url = new URL(request.url);
     const next = safeInternalPath(url.searchParams.get("next"));
 
+    failureCode = "not-configured";
+    const appOrigin = new URL(process.env.APP_URL || url.origin).origin;
+    if (url.origin !== appOrigin) {
+      const canonicalStart = new URL("/api/auth/google", appOrigin);
+      canonicalStart.searchParams.set("next", next);
+      return NextResponse.redirect(canonicalStart);
+    }
+
     failureCode = "oauth-pkce";
     const verifier = randomBase64Url(48);
 
@@ -21,7 +29,7 @@ export async function GET(request: Request) {
     const { url: supabaseUrl } = publicAuthConfig();
 
     failureCode = "oauth-start";
-    const callback = `${process.env.APP_URL || url.origin}/auth/callback`;
+    const callback = `${appOrigin}/auth/callback`;
     const authorize = new URL(`${supabaseUrl}/auth/v1/authorize`);
     authorize.searchParams.set("provider", "google");
     authorize.searchParams.set("redirect_to", callback);

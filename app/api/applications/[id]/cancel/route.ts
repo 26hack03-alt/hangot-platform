@@ -1,21 +1,4 @@
-import { and, eq, inArray } from "drizzle-orm";
-import { getDb } from "../../../../../db";
-import { applications, syncJobs } from "../../../../../db/schema";
+import { cancelApplication, findApplication } from "../../../../lib/database/applications";
+import { upsertSyncJob } from "../../../../lib/database/sync";
 import { id, requireUser, sameOrigin } from "../../../../lib/security";
-
-export async function POST(request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireUser();
-  if ("error" in auth) return auth.error;
-  if (!sameOrigin(request)) return Response.json({ error: "INVALID_ORIGIN" }, { status: 403 });
-  const applicationId = (await params).id;
-  const row = await getDb().query.applications.findFirst({ where: and(eq(applications.id, applicationId), eq(applications.userId, auth.user.id)) });
-  if (!row) return Response.json({ error: "NOT_FOUND" }, { status: 404 });
-  if (!["submitted", "under_review", "waiting"].includes(row.status)) return Response.json({ error: "CANNOT_CANCEL" }, { status: 409 });
-  const now = new Date();
-  const db = getDb();
-  await db.batch([
-    db.update(applications).set({ status: "cancelled", cancelledAt: now, updatedAt: now, googleSheetSynced: false }).where(and(eq(applications.id, applicationId), eq(applications.userId, auth.user.id), inArray(applications.status, ["submitted", "under_review", "waiting"]))),
-    db.insert(syncJobs).values({ id: id("sync"), dataType: "application", sourceId: applicationId, operation: "cancel", payload: JSON.stringify({ publicId: row.publicId, status: "cancelled", updatedAt: now.toISOString() }), status: "pending", createdAt: now, updatedAt: now }).onConflictDoUpdate({ target: [syncJobs.dataType, syncJobs.sourceId, syncJobs.operation], set: { payload: JSON.stringify({ publicId: row.publicId, status: "cancelled", updatedAt: now.toISOString() }), status: "pending", updatedAt: now } }),
-  ]);
-  return Response.json({ ok: true, status: "cancelled" });
-}
+export async function POST(request:Request,{params}:{params:Promise<{id:string}>}){const auth=await requireUser();if("error" in auth)return auth.error;if(!sameOrigin(request))return Response.json({error:"INVALID_ORIGIN"},{status:403});const applicationId=(await params).id,row=await findApplication(applicationId,auth.user.id);if(!row)return Response.json({error:"NOT_FOUND"},{status:404});if(!["submitted","under_review","waiting"].includes(row.status))return Response.json({error:"CANNOT_CANCEL"},{status:409});const updated=await cancelApplication(applicationId,auth.user.id,["submitted","under_review","waiting"]);if(!updated.length)return Response.json({error:"APPLICATION_CONFLICT"},{status:409});const now=new Date().toISOString();await upsertSyncJob({id:id("sync"),data_type:"application",source_id:applicationId,operation:"cancel",payload:{publicId:row.application_number,status:"cancelled",updatedAt:now},status:"pending",created_at:now,updated_at:now});return Response.json({ok:true,status:"cancelled"})}

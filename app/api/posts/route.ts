@@ -1,30 +1,5 @@
-import { and, eq, isNull, sql } from "drizzle-orm";
-import { getDb } from "../../../db";
-import { posts } from "../../../db/schema";
-import { hasPersonalDataPattern, id, requireUser, sameOrigin, sanitizeText } from "../../lib/security";
-
-export async function GET() {
-  const rows = await getDb().select({
-    id: posts.id, authorAlias: posts.authorAlias, category: posts.category, clubId: posts.clubId,
-    title: posts.title, content: posts.content, isNotice: posts.isNotice,
-    createdAt: posts.createdAt, updatedAt: posts.updatedAt,
-  }).from(posts).where(and(eq(posts.isHidden, false), isNull(posts.deletedAt))).orderBy(sql`${posts.isNotice} desc, ${posts.createdAt} desc`).limit(100);
-  return Response.json({ posts: rows });
-}
-
-export async function POST(request: Request) {
-  const auth = await requireUser();
-  if ("error" in auth) return auth.error;
-  if (!sameOrigin(request)) return Response.json({ error: "INVALID_ORIGIN" }, { status: 403 });
-  const body = await request.json();
-  const title = sanitizeText(body.title, 120);
-  const content = sanitizeText(body.content, 5000);
-  const category = sanitizeText(body.category, 30) || "자유";
-  const clubId = sanitizeText(body.clubId, 80) || null;
-  if (!title || !content) return Response.json({ error: "REQUIRED_FIELDS" }, { status: 400 });
-  if (hasPersonalDataPattern(`${title} ${content}`)) return Response.json({ error: "PERSONAL_DATA_DETECTED" }, { status: 422 });
-  const now = new Date();
-  const post = { id: id("post"), authorUserId: auth.user.id, authorAlias: auth.user.alias, category, clubId, title, content, isNotice: auth.user.role !== "student" && Boolean(body.isNotice), isHidden: false, createdAt: now, updatedAt: now };
-  await getDb().insert(posts).values(post);
-  return Response.json({ post: { ...post, authorUserId: undefined } }, { status: 201 });
-}
+import { createPost, listPosts } from "../../lib/database/posts";
+import { hasPersonalDataPattern,id,requireUser,sameOrigin,sanitizeText } from "../../lib/security";
+const camel=(r:Record<string,unknown>)=>({id:r.id,authorAlias:r.author_alias,category:r.category,clubId:r.club_id,title:r.title,content:r.content,isNotice:r.is_notice,createdAt:r.created_at,updatedAt:r.updated_at});
+export async function GET(){return Response.json({posts:(await listPosts()).map(camel)})}
+export async function POST(request:Request){const auth=await requireUser();if("error" in auth)return auth.error;if(!sameOrigin(request))return Response.json({error:"INVALID_ORIGIN"},{status:403});const body=await request.json(),title=sanitizeText(body.title,120),content=sanitizeText(body.content,5000),category=sanitizeText(body.category,30)||"자유",clubId=sanitizeText(body.clubId,80)||null;if(!title||!content)return Response.json({error:"REQUIRED_FIELDS"},{status:400});if(hasPersonalDataPattern(`${title} ${content}`))return Response.json({error:"PERSONAL_DATA_DETECTED"},{status:422});const now=new Date().toISOString(),rows=await createPost({id:id("post"),author_user_id:auth.user.id,author_alias:auth.user.alias,category,club_id:clubId,title,content,is_notice:auth.user.role!=="student"&&Boolean(body.isNotice),is_hidden:false,created_at:now,updated_at:now});return Response.json({post:camel(rows[0])},{status:201})}

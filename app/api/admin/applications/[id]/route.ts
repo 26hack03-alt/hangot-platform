@@ -1,33 +1,4 @@
-import { eq } from "drizzle-orm";
-import { getDb } from "../../../../../db";
-import { applications, clubs, users } from "../../../../../db/schema";
+import { findApplication } from "../../../../lib/database/applications";
 import { clubName } from "../../../../lib/clubs";
 import { requireUser } from "../../../../lib/security";
-
-export async function GET(_request: Request, { params }: { params: Promise<{ id: string }> }) {
-  const auth = await requireUser(["admin"]);
-  if ("error" in auth) return auth.error;
-  const applicationId = (await params).id;
-  const rows = await getDb().select({
-    id: applications.id,
-    applicationNumber: applications.publicId,
-    userAlias: users.alias,
-    clubId: applications.clubId,
-    databaseClubName: clubs.name,
-    status: applications.status,
-    motivation: applications.motivation,
-    interestArea: applications.interestArea,
-    careerInterest: applications.careerInterest,
-    experience: applications.experience,
-    additionalMessage: applications.additionalAnswer,
-    submittedAt: applications.submittedAt,
-    updatedAt: applications.updatedAt,
-    cancelledAt: applications.cancelledAt,
-    reviewedAt: applications.reviewedAt,
-    reviewComment: applications.reviewComment,
-  }).from(applications).innerJoin(users, eq(applications.userId, users.id)).leftJoin(clubs, eq(applications.clubId, clubs.id)).where(eq(applications.id, applicationId)).limit(1);
-  const row = rows[0];
-  if (!row) return Response.json({ error: "NOT_FOUND" }, { status: 404 });
-  const { databaseClubName, ...application } = row;
-  return Response.json({ application: { ...application, clubName: databaseClubName || clubName(row.clubId) } });
-}
+export async function GET(_request:Request,{params}:{params:Promise<{id:string}>}){const auth=await requireUser(["admin"]);if("error" in auth)return auth.error;const r=await findApplication((await params).id);if(!r)return Response.json({error:"NOT_FOUND"},{status:404});return Response.json({application:{id:r.id,applicationNumber:r.application_number,userAlias:r.users?.alias??"",clubId:r.club_id,clubName:r.clubs?.name||clubName(r.club_id),status:r.status,motivation:r.motivation,interestArea:r.interest_area,careerInterest:r.career_interest,experience:r.experience,additionalMessage:r.additional_answer,submittedAt:r.submitted_at,updatedAt:r.updated_at,cancelledAt:r.cancelled_at,reviewedAt:r.reviewed_at,reviewComment:r.review_comment}})}

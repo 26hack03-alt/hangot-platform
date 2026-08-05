@@ -1,6 +1,4 @@
-import { eq } from "drizzle-orm";
-import { getDb } from "../../db";
-import { users } from "../../db/schema";
+import { ensureUser, findUserByAuthId } from "./database/users";
 import { providerUser, type GoogleAuthUser } from "./supabase-auth";
 
 export type Role = "student" | "club_manager" | "admin";
@@ -34,22 +32,11 @@ export async function currentUser() {
   return user?.isActive ? user : null;
 }
 export async function ensureGoogleAppUser(authUser: GoogleAuthUser) {
-  const existing = await getDb().query.users.findFirst({ where: eq(users.authUserId, authUser.id) });
+  const existing = await findUserByAuthId(authUser.id);
   if (existing) return existing;
   const now = new Date();
   const alias = `학생-${(await sha256(authUser.id)).slice(0, 4).toUpperCase()}`;
-  await getDb().insert(users).values({
-    id: id("usr"),
-    authUserId: authUser.id,
-    alias,
-    recoveryHash: `google:${authUser.id}`,
-    role: "student",
-    isActive: true,
-    lastActiveAt: now,
-    createdAt: now,
-    updatedAt: now,
-  }).onConflictDoNothing();
-  return getDb().query.users.findFirst({ where: eq(users.authUserId, authUser.id) });
+  return ensureUser({ id: id("usr"), authUserId: authUser.id, alias, recoveryHash: `google:${authUser.id}`, now });
 }
 export async function requireUser(roles?: Role[]) {
   const user = await currentUser();

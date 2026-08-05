@@ -1,12 +1,10 @@
-# 데이터베이스 설정
+# Database setup
 
-Cloudflare D1 바인딩 이름은 `.openai/hosting.json`의 `DB`입니다.
+The production runtime uses Supabase Postgres. Apply these files to a new Supabase project in order:
 
-마이그레이션은 순서대로 적용합니다.
+1. `supabase/migrations/202608060001_vercel_postgres_schema.sql`
+2. `supabase/migrations/202608060002_rls_and_application_rpc.sql`
 
-1. `drizzle/0000_fair_rawhide_kid.sql`
-2. `drizzle/0001_anonymous_platform.sql`
+The application server accesses PostgREST with `SUPABASE_SERVICE_ROLE_KEY`; browser code must never import `app/lib/database/*`. Authentication continues to use the public Supabase URL and anon key with PKCE cookies.
 
-두 번째 마이그레이션은 이전 개인정보형 실험 테이블을 제거하고 익명 플랫폼 스키마로 교체합니다. 운영 데이터가 이미 있는 환경에서는 적용 전에 별도 백업과 학교 담당자의 승인이 필요합니다.
-
-주요 테이블은 `users`, `clubs`, `applications`, `posts`, `post_comments`, `questions`, `answers`, `audit_logs`, `sync_jobs`입니다. 이름·학번·이메일·전화번호 열은 없습니다.
+The `drizzle/` directory is retained only as Cloudflare D1 history and must not be applied to Supabase. See `SUPABASE_VERCEL_SETUP.md` for RLS, OAuth URLs, initial admin assignment, and optional D1 transfer.

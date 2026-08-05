@@ -22,17 +22,15 @@ test("preserves club discovery and Google session navigation", async () => {
 });
 
 test("database schema contains platform entities and no public identity columns", async () => {
-  const [schema, migration, security, auth] = await Promise.all([
-    read("db/schema.ts"),
-    read("drizzle/0001_anonymous_platform.sql"),
+  const [schema, security, auth] = await Promise.all([
+    read("supabase/migrations/202608060001_vercel_postgres_schema.sql"),
     read("app/lib/security.ts"),
     read("app/lib/supabase-auth.ts"),
   ]);
-  for (const entity of ["users", "clubs", "applications", "posts", "postComments", "questions", "answers", "auditLogs", "syncJobs"]) {
-    assert.match(schema, new RegExp(`export const ${entity}`));
+  for (const entity of ["users", "clubs", "applications", "posts", "post_comments", "questions", "answers", "audit_logs", "sync_jobs"]) {
+    assert.match(schema, new RegExp(`public\\.${entity}`));
   }
   assert.doesNotMatch(schema, /schoolEmail|encryptedName|studentNumber|phone|birth/i);
-  assert.doesNotMatch(migration, /school_email|student_number|phone|birth_date/i);
   assert.match(auth, /httpOnly:\s*true/);
   assert.match(auth, /sameSite:\s*"lax"/);
   assert.match(security, /hasPersonalDataPattern/);
@@ -55,9 +53,9 @@ test("required API and privacy setup files exist", async () => {
   await Promise.all(required.map((path) => access(new URL(path, root))));
 });
 
-test("production build packages only reviewed Sites D1 migrations", async () => {
-  const plugin = await read("build/sites-vite-plugin.ts");
-  assert.match(plugin, /resolve\(root, "drizzle", "sites-production"\)/);
-  assert.match(plugin, /resolve\(outputDirectory, "drizzle"\)/);
-  assert.match(plugin, /only the reviewed Sites production migrations/);
+test("production build uses Nitro Vercel output instead of Sites packaging", async () => {
+  const [vite, vercel] = await Promise.all([read("vite.config.ts"), read("vercel.json")]);
+  assert.match(vite, /nitro\(\)/);
+  assert.doesNotMatch(vite, /sites\(\)|cloudflare/i);
+  assert.match(vercel, /\.output/);
 });

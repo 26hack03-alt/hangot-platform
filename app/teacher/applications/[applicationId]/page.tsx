@@ -1,0 +1,1 @@
+import TeacherApplicationDetailClient from"./TeacherApplicationDetailClient";export default async function TeacherApplicationDetailPage({params}:{params:Promise<{applicationId:string}>}){return <TeacherApplicationDetailClient applicationId={(await params).applicationId}/>}

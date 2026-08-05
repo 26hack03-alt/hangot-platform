@@ -1,0 +1,5 @@
+import { eq } from "drizzle-orm";
+import { getDb } from "../../../../../db";
+import { auditLogs, teacherClubs } from "../../../../../db/schema";
+import { id, requireUser, sameOrigin } from "../../../../lib/security";
+export async function DELETE(request:Request,{params}:{params:Promise<{id:string}>}){const auth=await requireUser(["admin"]);if("error" in auth)return auth.error;if(!sameOrigin(request))return Response.json({error:"INVALID_ORIGIN"},{status:403});const assignmentId=(await params).id,db=getDb(),row=await db.query.teacherClubs.findFirst({where:eq(teacherClubs.id,assignmentId)});if(!row)return Response.json({error:"NOT_FOUND"},{status:404});await db.delete(teacherClubs).where(eq(teacherClubs.id,assignmentId));await db.insert(auditLogs).values({id:id("audit"),actorUserId:auth.user.id,actorRole:"admin",actionType:"teacher.club_unassigned",targetType:"teacher_club",targetId:assignmentId,beforeData:JSON.stringify({teacherUserId:row.teacherUserId,clubId:row.clubId}),createdAt:new Date()});return Response.json({ok:true})}

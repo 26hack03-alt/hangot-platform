@@ -6,6 +6,9 @@ const errors: Record<string, string> = {
   "invalid-callback": "로그인 요청이 만료되었습니다. 다시 시도해 주세요.",
   "oauth-failed": "Google 로그인을 완료하지 못했습니다.",
   "not-configured": "로그인 설정이 아직 완료되지 않았습니다.",
+  "oauth-cookie": "로그인 정보를 안전하게 저장하지 못했습니다. 브라우저 쿠키 설정을 확인해 주세요.",
+  "oauth-pkce": "로그인 보안 정보를 생성하지 못했습니다. 잠시 후 다시 시도해 주세요.",
+  "oauth-start": "Google 로그인을 시작하지 못했습니다. 잠시 후 다시 시도해 주세요.",
 };
 
 export default async function LoginPage({ searchParams }: { searchParams: Promise<{ next?: string; error?: string }> }) {

@@ -30,5 +30,16 @@
     ".next/dev/types/**/*.ts",
     "**/*.mts"
   ],
-  "exclude": ["node_modules", "dist", ".output", "examples", "hangot-google-auth-deploy-package"]
+  "exclude": [
+    "node_modules",
+    "dist",
+    ".output",
+    ".vercel",
+    ".nitro",
+    "examples",
+    "hangot-google-auth-deploy-package",
+    "drizzle.config.ts",
+    "drizzle/**",
+    "worker/**"
+  ]
 }

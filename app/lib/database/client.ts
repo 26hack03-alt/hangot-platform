@@ -50,9 +50,7 @@ export async function databaseRequest<T>(
           code?: string;
         };
       } catch {
-        detail = {
-          message: text,
-        };
+        detail = { message: text };
       }
     }
 

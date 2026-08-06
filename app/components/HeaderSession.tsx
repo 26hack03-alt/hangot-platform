@@ -3,7 +3,7 @@
 import { createContext, useCallback, useContext, useEffect, useState } from "react";
 
 type SessionRole = "student" | "club_manager" | "admin";
-type SessionUser = { alias: string; role: SessionRole };
+type SessionUser = { alias: string; displayName: string; profileCompleted: boolean; role: SessionRole };
 type SessionState = {
   user: SessionUser | null;
   loading: boolean;
@@ -97,9 +97,13 @@ export function HeaderAccount() {
     }
   };
 
+  const needsProfile = user.role === "student" && !user.profileCompleted;
+  const accountLabel = needsProfile ? "학생 정보 등록" : user.displayName;
+  const accountHref = needsProfile ? "/profile" : user.role === "admin" ? "/admin" : user.role === "club_manager" ? "/teacher" : "/profile";
+
   return <div className="profile-session">
-    <a className="profile-button profile-user" href={user.role === "admin" ? "/admin" : user.role === "club_manager" ? "/teacher" : "/my/applications"} aria-label={`${user.alias} 내 페이지`}>
-      <span>{user.alias}</span><b>{user.role === "club_manager" ? "담당 교사" : user.role === "admin" ? "관리자" : "내 페이지"}</b>
+    <a className={`profile-button profile-user${needsProfile ? " profile-required" : ""}`} href={accountHref} aria-label={`${accountLabel} 페이지`} title={accountLabel}>
+      <span>{accountLabel}</span><b>{needsProfile ? "필수" : user.role === "club_manager" ? "담당 교사" : user.role === "admin" ? "관리자" : "학생 정보"}</b>
     </a>
     <button className="header-logout" type="button" disabled={loggingOut} onClick={handleLogout}>
       {loggingOut ? "로그아웃 중" : "로그아웃"}

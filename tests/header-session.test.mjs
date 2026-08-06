@@ -13,9 +13,11 @@ test("header session UI uses the server session and logout APIs", async () => {
   assert.doesNotMatch(source, /localStorage|sessionStorage/);
 });
 
-test("header renders alias and only role-appropriate management links", async () => {
+test("header renders the private display name and only role-appropriate management links", async () => {
   const source = await read("app/components/HeaderSession.tsx");
-  assert.match(source, /user\.alias/);
+  assert.match(source, /user\.displayName/);
+  assert.match(source, /profileCompleted/);
+  assert.match(source, /학생 정보 등록/);
   assert.match(source, /user\.role === "admin"/);
   assert.match(source, /href="\/admin"/);
   assert.match(source, /user\.role === "club_manager"/);

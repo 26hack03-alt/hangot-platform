@@ -19,6 +19,7 @@ export default function ApplyClient({ club, availability, applicant }: { club: C
 
   async function submit(event: FormEvent) {
     event.preventDefault();
+    if (submitting) return;
     setMessage("");
     if (!applicant) return setMessage("동아리 신청 전에 학생 정보 등록이 필요합니다.");
     if (form.motivation.trim().length < 20) return setMessage("지원 동기는 20자 이상 작성해 주세요.");
@@ -33,6 +34,8 @@ export default function ApplyClient({ club, availability, applicant }: { club: C
         return;
       }
       const errors: Record<string, string> = {
+        AUTH_REQUIRED: "로그인이 필요합니다.",
+        PROFILE_REQUIRED: "동아리 신청 전에 학생 정보 등록이 필요합니다.",
         PERSONAL_DATA_DETECTED: "지원 내용에 입력하면 안 되는 개인정보가 포함되어 있습니다.",
         DUPLICATE_APPLICATION: "이미 신청한 동아리입니다.",
         CAPACITY_FULL: "모집 인원이 마감되었습니다.",
@@ -40,11 +43,13 @@ export default function ApplyClient({ club, availability, applicant }: { club: C
         INQUIRY_ONLY: "이 동아리는 직접 신청이 아니라 담당자 문의가 필요합니다.",
         CONFIRMATION_REQUIRED: "제출 내용을 확인해 주세요.",
         INVALID_FIELDS: "입력 내용과 글자 수를 확인해 주세요.",
+        RATE_LIMITED: "요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.",
+        INVALID_ORIGIN: "요청을 처리할 수 없습니다. 페이지를 새로고침한 후 다시 시도해 주세요.",
       };
-      if (!response.ok) return setMessage(errors[data.error] ?? "신청을 처리하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+      if (!response.ok) return setMessage(errors[data.error] ?? "신청 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.");
       router.push(`/my/applications/${data.application.id}?created=1`);
     } catch {
-      setMessage("신청을 처리하지 못했습니다. 네트워크 연결을 확인해 주세요.");
+      setMessage("신청 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.");
     } finally {
       setSubmitting(false);
     }

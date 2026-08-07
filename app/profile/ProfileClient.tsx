@@ -1,6 +1,7 @@
 "use client";
 
 import Link from "next/link";
+import { useRouter } from "next/navigation";
 import { FormEvent, useEffect, useState } from "react";
 
 type Profile = {
@@ -20,6 +21,7 @@ const messages: Record<string, string> = {
 };
 
 export default function ProfileClient({ next }: { next: string }) {
+  const router = useRouter();
   const [form, setForm] = useState({ studentName: "", studentNumber: "", schoolYear: "2026", privacyConsent: false });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -54,6 +56,7 @@ export default function ProfileClient({ next }: { next: string }) {
     else {
       setSuccess(true);
       setMessage("학생 정보를 저장했습니다.");
+      if (next !== "/") router.replace(next);
     }
     setSaving(false);
   }
@@ -62,7 +65,6 @@ export default function ProfileClient({ next }: { next: string }) {
     <div className="profile-fields">
       <label htmlFor="student-name">이름<input id="student-name" name="studentName" required minLength={2} maxLength={20} autoComplete="name" value={form.studentName} onChange={event => setForm({ ...form, studentName: event.target.value })} disabled={loading || saving} /></label>
       <label htmlFor="student-number">학번<input id="student-number" name="studentNumber" required minLength={4} maxLength={12} inputMode="numeric" pattern="[0-9]{4,12}" autoComplete="off" value={form.studentNumber} onChange={event => setForm({ ...form, studentNumber: event.target.value })} disabled={loading || saving} /></label>
-      <label htmlFor="school-year">학년도<input id="school-year" name="schoolYear" required type="number" min={2020} max={2100} value={form.schoolYear} onChange={event => setForm({ ...form, schoolYear: event.target.value })} disabled={loading || saving} /></label>
     </div>
 
     <section className="profile-privacy" aria-labelledby="privacy-title">

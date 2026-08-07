@@ -70,7 +70,7 @@ export function HeaderRoleLink() {
   if (loading || !user) return null;
   if (user.role === "admin") return <><a href="/admin">관리자</a><a href="/admin/teachers">교사 관리</a><a href="/admin/teacher-assignments">담당 배정</a><a href="/admin/applications">신청 관리</a></>;
   if (user.role === "club_manager") return <><a href="/teacher">담당 교사 페이지</a><a href="/teacher/applications">담당 신청</a></>;
-  return null;
+  return <a href="/my/applications">내 신청</a>;
 }
 
 export function HeaderAccount() {

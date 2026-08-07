@@ -1,6 +1,16 @@
-import { applicationStatusCounts,countApplications,listApplications } from "../../../lib/database/applications";
-import { applicationStatuses,isApplicationStatus } from "../../../lib/application-admin";
+import { applicationStatusCounts, countApplications, listApplications } from "../../../lib/database/applications";
+import { applicationStatuses, isApplicationStatus } from "../../../lib/application-admin";
 import { clubName } from "../../../lib/clubs";
-import { requireUser,sanitizeText } from "../../../lib/security";
-export async function GET(request:Request){const auth=await requireUser(["admin"]);if("error" in auth)return auth.error;const p=new URL(request.url).searchParams,page=pos(p.get("page"),1),pageSize=Math.min(100,pos(p.get("pageSize"),20)),status=p.get("status")?.trim()??"",clubId=sanitizeText(p.get("clubId"),80),search=sanitizeText(p.get("search"),200),sort=p.get("sort")==="oldest"?"oldest":"newest";if(status&&!isApplicationStatus(status))return Response.json({error:"INVALID_STATUS"},{status:400});const options={status:isApplicationStatus(status)?status:undefined,clubId:clubId||undefined,search:search||undefined,page,pageSize,sort} as const;const[rows,total,counts]=await Promise.all([listApplications(options),countApplications(options),applicationStatusCounts()]),statusCounts=Object.fromEntries(applicationStatuses.map(s=>[s,counts[s]??0]));return Response.json({applications:rows.map(r=>({id:r.id,applicationNumber:r.application_number,userAlias:r.users?.alias??"",clubId:r.club_id,clubName:r.clubs?.name||clubName(r.club_id),status:r.status,submittedAt:r.submitted_at,updatedAt:r.updated_at,reviewedAt:r.reviewed_at})),pagination:{page,pageSize,total,totalPages:Math.max(1,Math.ceil(total/pageSize))},summary:{total:Object.values(statusCounts).reduce((a,b)=>a+b,0),statusCounts}})}
-function pos(v:string|null,f:number){const n=Number.parseInt(v??"",10);return Number.isFinite(n)&&n>0?n:f}
+import { requireUser, sanitizeText } from "../../../lib/security";
+
+export async function GET(request: Request) {
+  const auth = await requireUser(["admin"]);
+  if ("error" in auth) return auth.error;
+  const params = new URL(request.url).searchParams, page = positive(params.get("page"), 1), pageSize = Math.min(100, positive(params.get("pageSize"), 20)), status = params.get("status")?.trim() ?? "", clubId = sanitizeText(params.get("clubId"), 80), search = sanitizeText(params.get("search"), 200), sort = params.get("sort") === "oldest" ? "oldest" : "newest";
+  if (status && !isApplicationStatus(status)) return Response.json({ error: "INVALID_STATUS" }, { status: 400 });
+  const options = { status: isApplicationStatus(status) ? status : undefined, clubId: clubId || undefined, search: search || undefined, page, pageSize, sort } as const;
+  const [rows, total, counts] = await Promise.all([listApplications(options), countApplications(options), applicationStatusCounts()]), statusCounts = Object.fromEntries(applicationStatuses.map(value => [value, counts[value] ?? 0]));
+  return Response.json({ applications: rows.map(row => ({ id: row.id, applicationNumber: row.application_number, studentName: row.users?.student_name ?? null, studentNumber: row.users?.student_number ?? null, userAlias: row.users?.alias ?? "", clubId: row.club_id, clubName: row.clubs?.name || clubName(row.club_id), status: row.status, submittedAt: row.submitted_at, updatedAt: row.updated_at, reviewedAt: row.reviewed_at })), pagination: { page, pageSize, total, totalPages: Math.max(1, Math.ceil(total / pageSize)) }, summary: { total: Object.values(statusCounts).reduce((sum, value) => sum + value, 0), statusCounts } });
+}
+
+function positive(value: string | null, fallback: number) { const parsed = Number.parseInt(value ?? "", 10); return Number.isFinite(parsed) && parsed > 0 ? parsed : fallback; }

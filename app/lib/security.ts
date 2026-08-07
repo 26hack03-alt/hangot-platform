@@ -20,7 +20,7 @@ export function sanitizeText(value: unknown, maxLength: number) {
   return value.replace(/<script[\s\S]*?>[\s\S]*?<\/script>/gi, "").replace(/<[^>]+>/g, "").replace(/\0/g, "").trim().slice(0, maxLength);
 }
 export function hasPersonalDataPattern(value: string) {
-  return /[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|01[016789][-\s]?\d{3,4}[-\s]?\d{4}|\d{6}[-\s]?[1-4]\d{6}|\b\d{7,12}\b|(?:카톡|텔레그램|인스타|연락처)\s*[:：]?\s*\S+/i.test(value);
+  return /[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|01[016789][-\s]?\d{3,4}[-\s]?\d{4}|\d{6}[-\s]?[1-4]\d{6}|(?:카톡|텔레그램|인스타|연락처|주소)\s*[:：]?\s*\S+/i.test(value);
 }
 export function sheetSafe(value: string) {
   return /^[=+\-@]/.test(value) ? `'${value}` : value;

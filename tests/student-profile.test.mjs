@@ -61,3 +61,18 @@ test("public board and Q&A continue to persist anonymous aliases and AI receives
   assert.match(questions, /author_alias:auth\.user\.alias/);
   for (const source of [posts, questions, home]) assert.doesNotMatch(source, /student(Name|Number)|student_(name|number)|authUserId|auth_user_id/);
 });
+
+test("application joins expose minimal profile data only to review APIs", async () => {
+  const [repo, ownList, ownDetail, admin, teacher] = await Promise.all([read("app/lib/database/applications.ts"), read("app/api/applications/me/route.ts"), read("app/api/applications/[id]/route.ts"), read("app/api/admin/applications/route.ts"), read("app/api/teacher/applications/route.ts")]);
+  assert.match(repo, /users!applications_user_id_fkey\(alias,student_name,student_number\)/);
+  for (const source of [ownList, ownDetail]) assert.doesNotMatch(source, /studentName|studentNumber|student_name|student_number/);
+  for (const source of [admin, teacher]) { assert.match(source, /studentName/); assert.match(source, /studentNumber/); }
+});
+
+test("free text privacy detection keeps sensitive patterns but allows ordinary long numbers", async () => {
+  const security = await read("app/lib/security.ts");
+  assert.match(security, /01\[016789\]/);
+  assert.match(security, /\[A-Za-z\]\{2,\}/);
+  assert.match(security, /\[1-4\]\\d\{6\}/);
+  assert.doesNotMatch(security, /\\b\\d\{7,12\}\\b/);
+});

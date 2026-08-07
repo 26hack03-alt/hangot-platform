@@ -19,7 +19,7 @@ const messages: Record<string, string> = {
   STUDENT_NUMBER_ALREADY_USED: "해당 학년도의 학번이 이미 등록되어 있습니다.",
 };
 
-export default function ProfileClient() {
+export default function ProfileClient({ next }: { next: string }) {
   const [form, setForm] = useState({ studentName: "", studentNumber: "", schoolYear: "2026", privacyConsent: false });
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
@@ -77,6 +77,6 @@ export default function ProfileClient() {
     </section>
 
     {message && <p className={success ? "form-success" : "form-error"} role="status">{message}</p>}
-    <div className="button-row profile-actions"><Link className="secondary link-button" href="/">홈으로 이동</Link><button className="primary" type="submit" disabled={loading || saving}>{saving ? "저장 중…" : "저장"}</button></div>
+    <div className="button-row profile-actions"><Link className="secondary link-button" href={next}>{next === "/" ? "홈으로 이동" : "신청 화면으로 돌아가기"}</Link><button className="primary" type="submit" disabled={loading || saving}>{saving ? "저장 중…" : "저장"}</button></div>
   </form>;
 }

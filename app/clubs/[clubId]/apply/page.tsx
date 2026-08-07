@@ -9,5 +9,6 @@ export default async function ApplyPage({ params }: { params: Promise<{ clubId: 
   if (!user) redirect(`/login?next=${encodeURIComponent(`/clubs/${clubId}/apply`)}`);
   const club = findClub(clubId);
   if (!club) redirect("/");
-  return <ApplyClient club={club} availability={applicationAvailability(club.recruitment_status)}/>;
+  const profileComplete = Boolean(user.profileCompleted && user.studentName && user.studentNumber && user.schoolYear && user.privacyConsentAt);
+  return <ApplyClient club={club} availability={applicationAvailability(club.recruitment_status)} applicant={profileComplete ? { studentName: user.studentName!, studentNumber: user.studentNumber! } : null}/>;
 }

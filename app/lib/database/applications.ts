@@ -2,8 +2,8 @@ import "server-only";
 import { databaseRequest, isUniqueViolation, query } from "./client";
 
 export type ApplicationStatus="submitted"|"under_review"|"waiting"|"approved"|"rejected"|"cancelled";
-export type ApplicationRow={id:string;application_number:string;user_id:string;club_id:string;status:ApplicationStatus;motivation:string;interest_area:string|null;career_interest:string;experience:string;additional_answer:string|null;submitted_at:string;cancelled_at:string|null;reviewed_at:string|null;reviewed_by:string|null;review_comment:string|null;google_sheet_synced:boolean;google_sheet_synced_at:string|null;updated_at:string;users?:{alias:string}|null;clubs?:{name:string}|null};
-const select="*,users!applications_user_id_fkey(alias),clubs(name)";
+export type ApplicationRow={id:string;application_number:string;user_id:string;club_id:string;status:ApplicationStatus;motivation:string;interest_area:string|null;career_interest:string;experience:string;additional_answer:string|null;submitted_at:string;cancelled_at:string|null;reviewed_at:string|null;reviewed_by:string|null;review_comment:string|null;google_sheet_synced:boolean;google_sheet_synced_at:string|null;updated_at:string;users?:{alias:string;student_name:string|null;student_number:string|null}|null;clubs?:{name:string}|null};
+const select="*,users!applications_user_id_fkey(alias,student_name,student_number),clubs(name)";
 export async function findApplication(id:string,userId?:string){const rows=await databaseRequest<ApplicationRow[]>(`applications?${query({select,id:`eq.${id}`,user_id:userId?`eq.${userId}`:undefined,limit:1})}`);return rows[0]??null}
 export async function findDuplicateApplication(userId:string,clubId:string){const rows=await databaseRequest<ApplicationRow[]>(`applications?${query({select:"id",user_id:`eq.${userId}`,club_id:`eq.${clubId}`,limit:1})}`);return rows[0]??null}
 export async function countActiveClubApplications(clubId:string){const rows=await databaseRequest<Array<{id:string}>>(`applications?${query({select:"id",club_id:`eq.${clubId}`,status:"neq.cancelled"})}`);return rows.length}

@@ -79,8 +79,8 @@ export default function Home() {
   return (
     <main className="app-shell">
       <HeaderSessionProvider><header className="topbar">
-        <a className="brand" href="#" aria-label="한곳 홈">
-          <span className="brand-mark">S</span>
+        <a className="brand" href="/" aria-label="한곳 홈">
+          <img className="brand-logo" src="/hangot-logo.png" alt="" width="36" height="36" />
           <span>한<span className="brand-accent">곳</span></span>
         </a>
         <nav className="desktop-nav" aria-label="주요 메뉴">

@@ -14,6 +14,10 @@ footer{max-width:1100px;margin:auto;padding:38px 20px 90px;display:flex;align-it
 @media(min-width:761px){.club-grid.compact{grid-template-columns:repeat(auto-fit,minmax(280px,340px));justify-content:center}}
 button:disabled{cursor:default}
 
+/* Shared header logo */
+.brand-logo{display:block;width:36px;height:36px;flex:0 0 36px;object-fit:contain;aspect-ratio:1;border-radius:10px}
+@media(max-width:760px){.brand-logo{width:33px;height:33px;flex-basis:33px;border-radius:9px}}
+
 .profile-session{display:flex;align-items:center;gap:8px}.profile-user{max-width:230px;text-decoration:none}.profile-user span{max-width:130px;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}.header-logout{min-height:40px;padding:9px 12px;border:1px solid #d9e3de;border-radius:10px;background:#fff;color:#52647e;font-size:12px;font-weight:750}.profile-loading{width:116px;height:42px;border:0;background:linear-gradient(100deg,#f1f4f8 20%,#e5ebf2 38%,#f1f4f8 56%);background-size:260% 100%;animation:shine 1.3s infinite;pointer-events:none}
 .profile-required{border-color:#d6a426;background:#fff9e8;color:#785500}.profile-required b{color:#8b6500}
 

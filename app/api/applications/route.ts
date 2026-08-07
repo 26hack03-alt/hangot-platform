@@ -2,6 +2,7 @@ import { countActiveClubApplications, createApplication, findDuplicateApplicatio
 import { ensureClub, findDatabaseClub } from "../../lib/database/clubs";
 import { upsertSyncJob } from "../../lib/database/sync";
 import { applicationAvailability, findClub } from "../../lib/clubs";
+import { checkRateLimit, hasOversizedBody } from "../../lib/rate-limit";
 import { hasPersonalDataPattern, id, requireUser, sameOrigin, sanitizeText, shortCode } from "../../lib/security";
 
 export async function POST(request: Request) {
@@ -9,6 +10,9 @@ export async function POST(request: Request) {
   if ("error" in auth) return auth.error;
   if (!auth.user.profileCompleted || !auth.user.studentName || !auth.user.studentNumber || !auth.user.schoolYear || !auth.user.privacyConsentAt) return Response.json({ error: "PROFILE_REQUIRED" }, { status: 409 });
   if (!sameOrigin(request)) return Response.json({ error: "INVALID_ORIGIN" }, { status: 403 });
+  if (hasOversizedBody(request, 32_768)) return Response.json({ error: "REQUEST_TOO_LARGE" }, { status: 413 });
+  const limited = await checkRateLimit(request, { scope: "application-create", identifier: auth.user.id, limit: 10, windowMs: 60_000 });
+  if (limited) return limited;
   const body = await request.json().catch(() => null);
   if (!body || typeof body !== "object") return Response.json({ error: "INVALID_REQUEST" }, { status: 400 });
   const clubId = sanitizeText(body.clubId, 80), sourceClub = findClub(clubId);

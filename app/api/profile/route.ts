@@ -1,4 +1,5 @@
 import { type AppUser, updateOwnStudentProfile } from "../../lib/database/users";
+import { checkRateLimit, hasOversizedBody } from "../../lib/rate-limit";
 import { requireUser, sameOrigin, sanitizeText } from "../../lib/security";
 
 export const PRIVACY_CONSENT_VERSION = "student-profile-2026-08-07";
@@ -29,6 +30,9 @@ export async function PATCH(request: Request) {
   const auth = await requireUser();
   if ("error" in auth) return auth.error;
   if (!sameOrigin(request)) return Response.json({ error: "INVALID_ORIGIN" }, { status: 403 });
+  if (hasOversizedBody(request, 8_192)) return Response.json({ error: "REQUEST_TOO_LARGE" }, { status: 413 });
+  const limited = await checkRateLimit(request, { scope: "profile-update", identifier: auth.user.id, limit: 10, windowMs: 60_000 });
+  if (limited) return limited;
   const body = await request.json().catch(() => null) as Record<string, unknown> | null;
   if (!body) return Response.json({ error: "INVALID_REQUEST" }, { status: 400 });
   if (body.privacyConsent !== true) return Response.json({ error: "PRIVACY_CONSENT_REQUIRED" }, { status: 400 });

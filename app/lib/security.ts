@@ -46,6 +46,14 @@ export async function requireUser(roles?: Role[]) {
 }
 export function sameOrigin(request: Request) {
   const origin = request.headers.get("origin");
-  if (!origin) return true;
-  return origin === new URL(request.url).origin || origin === process.env.ALLOWED_ORIGIN;
+  const allowed = new Set([new URL(request.url).origin]);
+  for (const value of [process.env.APP_URL, process.env.ALLOWED_ORIGIN]) {
+    if (!value) continue;
+    try { allowed.add(new URL(value).origin); } catch { /* Invalid configuration is never trusted. */ }
+  }
+  if (origin) {
+    try { return allowed.has(new URL(origin).origin); } catch { return false; }
+  }
+  const fetchSite = request.headers.get("sec-fetch-site");
+  return !fetchSite || fetchSite === "same-origin" || fetchSite === "none";
 }

@@ -1,7 +1,10 @@
 import { NextResponse } from "next/server";
+import { checkRateLimit } from "../../../lib/rate-limit";
 import { pkceChallenge, publicAuthConfig, randomBase64Url, safeInternalPath, setOAuthFlow } from "../../../lib/supabase-auth";
 
 export async function GET(request: Request) {
+  const limited = await checkRateLimit(request, { scope: "oauth-start", limit: 10, windowMs: 60_000 });
+  if (limited) return limited;
   let failureCode = "oauth-start";
 
   try {

@@ -1,8 +1,11 @@
 import { NextResponse } from "next/server";
+import { checkRateLimit } from "../../lib/rate-limit";
 import { ensureGoogleAppUser } from "../../lib/security";
 import { authRequest, clearOAuthFlow, clearProviderSession, readOAuthFlow, setProviderSession } from "../../lib/supabase-auth";
 
 export async function GET(request: Request) {
+  const limited = await checkRateLimit(request, { scope: "oauth-callback", limit: 20, windowMs: 60_000 });
+  if (limited) return limited;
   const url = new URL(request.url);
   const appOrigin = new URL(process.env.APP_URL || url.origin).origin;
   const code = url.searchParams.get("code");

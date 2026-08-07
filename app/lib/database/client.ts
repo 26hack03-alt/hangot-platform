@@ -54,11 +54,7 @@ export async function databaseRequest<T>(
       }
     }
 
-    throw new DatabaseError(
-      detail.message || "DATABASE_REQUEST_FAILED",
-      response.status,
-      detail.code,
-    );
+    throw new DatabaseError("DATABASE_REQUEST_FAILED", response.status, detail.code);
   }
 
   if (response.status === 204) {

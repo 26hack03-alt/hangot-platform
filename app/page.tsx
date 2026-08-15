@@ -11,6 +11,8 @@ type Club = {
   introduction: string;
   activities: string;
   poster_url: string;
+  location: string;
+  selection_type: string;
   recruitment_status: string;
   visible: boolean;
   color?: string;
@@ -21,7 +23,7 @@ type Club = {
 export default function Home() {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [query, setQuery] = useState("");
-  const [category, setCategory] = useState("전체");
+  const [category] = useState("전체");
   const [selected, setSelected] = useState<Club | null>(null);
   const [showRecommend, setShowRecommend] = useState(false);
   const [loading, setLoading] = useState(true);
@@ -71,10 +73,8 @@ export default function Home() {
       return matchesCategory && matchesSearch;
     });
   }, [clubs, category, query]);
-  const availableCategories = useMemo(
-    () => ["전체", ...Array.from(new Set(clubs.map((club) => club.category))).filter(Boolean)],
-    [clubs],
-  );
+  const recruitingClubs = filtered.filter((club) => ["모집중", "추가모집중", "신청가능"].includes(club.recruitment_status.replace(/\s+/g, "")));
+  const displayedClubs = (query ? filtered : recruitingClubs).slice(0, 3);
 
   return (
     <main className="app-shell">
@@ -89,14 +89,13 @@ export default function Home() {
           <a href="/my/applications">내 신청</a>
           <HeaderRoleLink />
         </nav>
-        <HeaderAccount />
+        <div className="home-header-actions"><span className="home-notification" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg></span><HeaderAccount /></div>
       </header></HeaderSessionProvider>
 
       <section className="hero">
-        <div className="eyebrow"><span>✦</span> 2026학년도 {clubs.length || 58}개 동아리 모집 중</div>
-        <h1>새롬고의 모든 동아리,<br/><em>한곳</em>에서.</h1>
-        <p>새롬고의 모든 동아리를 한눈에 보고, 관심사와 진로에 맞는 활동을 시작해 보세요.</p>
-        <div className="search-wrap">
+        <h1>새롬고의 모든 동아리를<br/>한눈에, <em>한곳</em>에서</h1>
+        <p>관심사와 진로에 맞는 동아리를 찾아보세요.</p>
+        <div className="search-wrap" id="club-search">
           <span className="search-icon">⌕</span>
           <input
             value={query}
@@ -106,11 +105,15 @@ export default function Home() {
           />
           <button onClick={() => document.getElementById("clubs")?.scrollIntoView({ behavior: "smooth" })}>검색</button>
         </div>
-        <div className="quick-tags">
-          <span>인기 검색</span>
-          {["#컴퓨터", "#사이언스", "#방송", "#도서부"].map((tag) => (
-            <button key={tag} onClick={() => setQuery(tag.slice(1))}>{tag}</button>
-          ))}
+      </section>
+
+      <section className="home-quick-menu" aria-labelledby="quick-menu-title">
+        <h2 id="quick-menu-title">빠른 메뉴</h2>
+        <div>
+          <a href="/clubs"><span aria-hidden="true">⌕</span><b>동아리 찾기</b><small>전체 동아리 탐색</small></a>
+          <button type="button" onClick={() => setShowRecommend(true)}><span aria-hidden="true">✦</span><b>맞춤 추천</b><small>AI 맞춤 동아리</small></button>
+          <a href="/my/applications"><span aria-hidden="true">▣</span><b>내 신청</b><small>신청 현황 확인</small></a>
+          <a href="/board"><span aria-hidden="true">▤</span><b>게시판</b><small>소식 &amp; 커뮤니티</small></a>
         </div>
       </section>
 
@@ -126,25 +129,17 @@ export default function Home() {
       </section>
 
       <section className="club-section" id="clubs">
-        <div className="section-heading">
-          <div><span className="section-kicker">EXPLORE CLUBS</span><h2>새롬고 동아리를 만나보세요</h2></div>
-          <span className="club-count">검색 결과 <b>{filtered.length}</b>개</span>
-        </div>
-        <div className="filters" role="group" aria-label="분야 필터">
-          {availableCategories.map((item) => (
-            <button key={item} className={category === item ? "selected" : ""} onClick={() => setCategory(item)}>{item}</button>
-          ))}
-        </div>
+        <div className="section-heading"><h2>{query ? "검색 결과" : "지금 모집 중인 동아리"}</h2><a href="/clubs">더보기 <span aria-hidden="true">›</span></a></div>
 
         {loading ? (
           <div className="loading-grid">{[1,2,3].map(i => <div className="loading-card" key={i}/>)}</div>
         ) : filtered.length === 0 ? (
           <div className="empty-state"><b>조건에 맞는 동아리가 없어요.</b><span>검색어나 분야를 바꿔보세요.</span></div>
         ) : (
-          <div className={`club-grid ${filtered.length < 3 ? "compact" : ""}`}>
-            {filtered.map((club, index) => (
+          <div className={`club-grid ${displayedClubs.length < 3 ? "compact" : ""}`}>
+            {displayedClubs.map((club, index) => (
               <article
-                className="club-card"
+                className="club-card ui-card"
                 key={club.club_id}
                 role="button"
                 tabIndex={0}
@@ -158,7 +153,7 @@ export default function Home() {
                 }}
               >
                 <div className="card-visual" style={{ background: club.color || ["#e9f7ef","#e8f1fb","#fbf0e8","#f0eafb"][index % 4] }}>
-                  <span className="club-icon">{club.icon || ["⌘","⚛","◉","✦"][index % 4]}</span>
+                  {club.poster_url ? <img src={club.poster_url} alt=""/> : <span className="club-icon">{club.icon || ["⌘","⚛","◉","✦"][index % 4]}</span>}
                   <span className={`status ${club.recruitment_status === "모집중" ? "open" : ""}`}>{club.recruitment_status}</span>
                 </div>
                 <div className="card-body">
@@ -167,50 +162,36 @@ export default function Home() {
                   <p>{club.introduction}</p>
                   <div className="card-meta"><span>대상 학년</span><b>{club.grade || "전 학년"}</b></div>
                 </div>
+                <span className="club-card-chevron" aria-hidden="true">›</span>
               </article>
             ))}
           </div>
         )}
+        {!loading && <a className="show-all-clubs" href="/clubs">동아리 전체보기 <span aria-hidden="true">›</span></a>}
       </section>
-
-      <section className="steps">
-        <span className="section-kicker">HOW IT WORKS</span>
-        <h2>동아리 신청, 이렇게 진행돼요</h2>
-        <div className="step-grid">
-          {[
-            ["01","찾아보기","다양한 동아리 정보와 활동 내용을 살펴봐요."],
-            ["02","추천받기","관심사와 진로에 맞는 동아리를 AI가 추천해요."],
-            ["03","신청하기","학교 계정으로 로그인하고 지원 동기를 작성해요."],
-            ["04","결과확인","검토 과정과 최종 승인 결과를 앱에서 확인해요."]
-          ].map(([num,title,text], i) => <div className="step" key={num}><span>{num}</span><div className="step-icon">{["⌕","✦","✓","◎"][i]}</div><h3>{title}</h3><p>{text}</p></div>)}
-        </div>
-      </section>
-
-      <footer>
-        <div className="footer-brand"><span className="brand-mark">S</span><div><b>한곳</b><small>새롬고등학교 활동 플랫폼</small></div></div>
-        <p>동아리에서 시작해 더 넓은 학교 활동으로 이어집니다.</p>
-        <span>© 2026 Saerom High School</span>
-      </footer>
 
       <nav className="mobile-nav" aria-label="모바일 메뉴">
-        <a href="#clubs"><span>⌂</span>홈</a>
-        <a href="#clubs"><span>⌕</span>찾기</a>
-        <button onClick={() => setShowRecommend(true)}><span className="ai-small">✦</span>AI 추천</button>
+        <a className="active" href="/"><span>⌂</span>홈</a>
+        <a href="/clubs"><span>⌕</span>동아리</a>
         <a href="/my/applications"><span>▣</span>내 신청</a>
+        <a href="/board"><span>▤</span>게시판</a>
+        <a href="/questions"><span>◌</span>질의응답</a>
       </nav>
 
       {selected && (
         <div className="modal-backdrop" onMouseDown={() => setSelected(null)}>
           <section className="detail-sheet" onMouseDown={(e) => e.stopPropagation()}>
             <button className="close" onClick={() => setSelected(null)} aria-label="닫기">×</button>
-            <div className="detail-visual" style={{ background: selected.color || "#e9f7ef" }}><span>{selected.icon || "✦"}</span></div>
+            <div className="detail-visual" style={{ background: selected.color || "#e9f7ef" }}>{selected.poster_url ? <img src={selected.poster_url} alt=""/> : <span>{selected.icon || "✦"}</span>}</div>
             <div className="detail-content">
-              <div className="detail-tags"><span>{selected.category}</span><span className="open">{selected.recruitment_status}</span></div>
-              <h2>{selected.club_name}</h2><p className="lead">{selected.introduction}</p>
-              <div className="basic-info"><div><span>대상 학년</span><b>{selected.grade || "전 학년"}</b></div></div>
-              <dl><div><dt>주요 활동</dt><dd>{selected.activities}</dd></div><div><dt>관련 진로</dt><dd>{selected.career}</dd></div></dl>
-              <a className="apply-button" href={`/clubs/${selected.club_id}/apply`}>익명으로 신청하기</a>
-              <small>이름·학번 없이 익명 계정으로 신청합니다.</small>
+              <div className="detail-tags"><span className="open">{selected.recruitment_status}</span></div>
+              <h2>{selected.club_name}</h2>
+              <div className="detail-facts"><span>{selected.category}</span><span>{selected.grade || "전 학년"}</span><span>{selected.selection_type}</span></div>
+              <section><h3>동아리 소개</h3><p className="lead">{selected.introduction}</p></section>
+              <section><h3>주요 활동</h3><p className="pre-line">{selected.activities}</p></section>
+              <section><h3>관련 진로</h3><p>{selected.career}</p></section>
+              <section><h3>운영 정보</h3><dl className="operation-info"><div><dt>활동 장소</dt><dd>{selected.location || "추후 안내"}</dd></div><div><dt>모집 방식</dt><dd>{selected.selection_type}</dd></div></dl></section>
+              <a className="apply-button" href={`/clubs/${selected.club_id}/apply`}>동아리 신청하기</a>
             </div>
           </section>
         </div>

@@ -1,4 +1,7 @@
 import "server-only";
 import { databaseRequest, query } from "./client";
+export type QuestionRow={id:string;author_user_id:string;author_alias:string;club_id:string;title:string;content:string;is_private:boolean;status:"waiting"|"answered"|"closed";deleted_at:string|null;created_at:string;updated_at:string};
 export async function listQuestions(userId?:string){const params:Record<string,string|number>={select:"id,author_alias,club_id,title,content,is_private,status,created_at",deleted_at:"is.null",order:"created_at.desc",limit:100};params.or=userId?`(is_private.eq.false,author_user_id.eq.${userId})`:"(is_private.eq.false)";return databaseRequest<Record<string,unknown>[]>(`questions?${query(params)}`)}
 export async function createQuestion(row:Record<string,unknown>){return databaseRequest<Record<string,unknown>[]>("questions",{method:"POST",headers:{prefer:"return=representation"},body:JSON.stringify(row)})}
+export async function findQuestion(id:string){const rows=await databaseRequest<QuestionRow[]>(`questions?${query({select:"*",id:`eq.${id}`,deleted_at:"is.null",limit:1})}`);return rows[0]??null}
+export async function answerQuestion(input:{questionId:string;answerId:string;content:string;actorUserId:string;actorRole:"admin"|"teacher"}){return databaseRequest<QuestionRow[]>("rpc/answer_question",{method:"POST",body:JSON.stringify({p_question_id:input.questionId,p_answer_id:input.answerId,p_answer_content:input.content,p_actor_user_id:input.actorUserId,p_actor_role:input.actorRole})})}

@@ -1,7 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
-import { HeaderAccount, HeaderRoleLink, HeaderSessionProvider } from "./components/HeaderSession";
+import { HeaderAccount, HeaderNotifications, HeaderRoleLink, HeaderSessionProvider } from "./components/HeaderSession";
 
 type Club = {
   club_id: string;
@@ -89,7 +89,7 @@ export default function Home() {
           <a href="/my/applications">내 신청</a>
           <HeaderRoleLink />
         </nav>
-        <div className="home-header-actions"><span className="home-notification" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M18 8a6 6 0 0 0-12 0c0 7-3 7-3 9h18c0-2-3-2-3-9M10 21h4"/></svg></span><HeaderAccount /></div>
+        <div className="home-header-actions"><HeaderNotifications /><HeaderAccount /></div>
       </header></HeaderSessionProvider>
 
       <section className="hero">

@@ -154,13 +154,17 @@ export default function Home() {
                   }
                 }}
               >
-                <FavoriteButton clubId={club.club_id} clubName={club.club_name}/>
                 <div className="card-visual" style={{ background: club.color || clubCategoryVisual(club.category).background }}>
                   {club.poster_url ? <img src={club.poster_url} alt=""/> : <span className={`club-category-fallback category-${clubCategoryVisual(club.category).tone}`}><ClubCategoryIcon category={club.category}/></span>}
-                  <span className={`status ${club.recruitment_status === "모집중" ? "open" : ""}`}>{club.recruitment_status}</span>
                 </div>
                 <div className="card-body">
-                  <span className="category-label">{club.category}</span>
+                  <div className="club-card-top">
+                    <div className="club-card-badges">
+                      <span className={`status ${club.recruitment_status === "모집중" ? "open" : ""}`}>{club.recruitment_status}</span>
+                      <span className="category-label">{club.category}</span>
+                    </div>
+                    <FavoriteButton clubId={club.club_id} clubName={club.club_name}/>
+                  </div>
                   <h3>{club.club_name}</h3>
                   <p>{club.introduction}</p>
                   <div className="card-meta"><span>대상 학년</span><b>{club.grade || "전 학년"}</b></div>

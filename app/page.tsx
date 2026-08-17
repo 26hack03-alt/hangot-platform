@@ -2,6 +2,7 @@
 
 import { useEffect, useMemo, useState } from "react";
 import { ClubCategoryIcon,clubCategoryVisual } from "./components/ClubCategoryIcon";
+import { FavoriteButton } from "./components/FavoriteButton";
 import { HeaderAccount, HeaderNotifications, HeaderRoleLink, HeaderSessionProvider } from "./components/HeaderSession";
 
 type Club = {
@@ -153,6 +154,7 @@ export default function Home() {
                   }
                 }}
               >
+                <FavoriteButton clubId={club.club_id} clubName={club.club_name}/>
                 <div className="card-visual" style={{ background: club.color || clubCategoryVisual(club.category).background }}>
                   {club.poster_url ? <img src={club.poster_url} alt=""/> : <span className={`club-category-fallback category-${clubCategoryVisual(club.category).tone}`}><ClubCategoryIcon category={club.category}/></span>}
                   <span className={`status ${club.recruitment_status === "모집중" ? "open" : ""}`}>{club.recruitment_status}</span>

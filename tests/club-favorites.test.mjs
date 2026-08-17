@@ -1,0 +1,13 @@
+import assert from "node:assert/strict";
+import { readFile } from "node:fs/promises";
+import test from "node:test";
+
+const root=new URL("../",import.meta.url),read=(path)=>readFile(new URL(path,root),"utf8");
+
+test("favorites migration is non-destructive, minimal, unique, and private",async()=>{const sql=await read("supabase/migrations/202608170001_club_favorites.sql");assert.match(sql,/create table if not exists public\.club_favorites/i);for(const column of["user_id text not null","club_id text not null","created_at timestamptz not null default now\(\)","primary key \(user_id, club_id\)"])assert.match(sql,new RegExp(column.replace(/[()]/g,"\\$&"),"i"));assert.match(sql,/references public\.users\(id\)/i);assert.match(sql,/references public\.clubs\(id\)/i);assert.match(sql,/enable row level security/i);assert.match(sql,/grant all on public\.club_favorites to service_role/i);assert.doesNotMatch(sql,/drop|truncate|student_name|student_number|email|alias|career|interest/i)});
+
+test("favorite APIs trust only the signed-in session and validate clubs",async()=>{const[list,detail,repo]=await Promise.all([read("app/api/favorites/route.ts"),read("app/api/favorites/[clubId]/route.ts"),read("app/lib/database/favorites.ts")]);for(const source of[list,detail]){assert.match(source,/requireUser\(\)/);assert.doesNotMatch(source,/body\.userId|params.*userId|auth_user_id|student_name|email/i)}assert.match(list,/sameOrigin\(request\)/);assert.match(detail,/sameOrigin\(request\)/);assert.match(list,/findClub\(clubId\)/);assert.match(repo,/on_conflict=user_id,club_id/);assert.match(repo,/user_id:`eq\.\$\{userId\}`/);assert.match(repo,/club_id:`eq\.\$\{clubId\}`/)});
+
+test("shared favorite UI appears on home, club list, and detail",async()=>{const[layout,component,home,clubs,detail]=await Promise.all([read("app/layout.tsx"),read("app/components/FavoriteButton.tsx"),read("app/page.tsx"),read("app/clubs/page.tsx"),read("app/clubs/[clubId]/ClubDetailClient.tsx")]);assert.match(layout,/FavoriteProvider/);for(const source of[home,clubs,detail])assert.match(source,/FavoriteButton/);assert.match(component,/stopPropagation/);assert.match(component,/즐겨찾기에 추가/);assert.match(component,/즐겨찾기에서 제거/);assert.match(component,/로그인 후 관심 동아리를 저장할 수 있습니다/);assert.match(component,/viewBox="0 0 24 24"/)});
+
+test("club list favorite-only filter composes with existing search and category",async()=>{const source=await read("app/clubs/page.tsx");assert.match(source,/즐겨찾기만 보기/);assert.match(source,/favoritesOnly/);assert.match(source,/isFavorite\(club\.club_id\)/);assert.match(source,/category==="전체"/);assert.match(source,/normalized/)});

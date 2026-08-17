@@ -1,6 +1,7 @@
 import type { Metadata } from "next";
 import "./globals.css";
 import "./portal.css";
+import { FavoriteProvider } from "./components/FavoriteButton";
 
 export const metadata: Metadata = {
   title: "한곳 | 새롬고등학교 동아리 플랫폼",
@@ -20,5 +21,5 @@ export const metadata: Metadata = {
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode }>) {
-  return <html lang="ko"><body>{children}</body></html>;
+  return <html lang="ko"><body><FavoriteProvider>{children}</FavoriteProvider></body></html>;
 }

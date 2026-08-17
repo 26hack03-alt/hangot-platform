@@ -1,6 +1,7 @@
 "use client";
 
 import { useEffect, useMemo, useState } from "react";
+import { ClubCategoryIcon,clubCategoryVisual } from "./components/ClubCategoryIcon";
 import { HeaderAccount, HeaderNotifications, HeaderRoleLink, HeaderSessionProvider } from "./components/HeaderSession";
 
 type Club = {
@@ -110,10 +111,10 @@ export default function Home() {
       <section className="home-quick-menu" aria-labelledby="quick-menu-title">
         <h2 id="quick-menu-title">빠른 메뉴</h2>
         <div>
-          <a href="/clubs"><span aria-hidden="true">⌕</span><b>동아리 찾기</b><small>전체 동아리 탐색</small></a>
-          <button type="button" onClick={() => setShowRecommend(true)}><span aria-hidden="true">✦</span><b>맞춤 추천</b><small>AI 맞춤 동아리</small></button>
-          <a href="/my/applications"><span aria-hidden="true">▣</span><b>내 신청</b><small>신청 현황 확인</small></a>
-          <a href="/board"><span aria-hidden="true">▤</span><b>게시판</b><small>소식 &amp; 커뮤니티</small></a>
+          <a href="/clubs"><span className="quick-menu-icon quick-menu-search" aria-hidden="true"><svg viewBox="0 0 24 24"><circle cx="11" cy="11" r="6.5"/><path d="m16 16 4 4"/></svg></span><span className="quick-menu-copy"><b>동아리 찾기</b><small>전체 동아리 탐색</small></span><svg className="quick-menu-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>
+          <button type="button" onClick={() => setShowRecommend(true)}><span className="quick-menu-icon quick-menu-recommend" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="m12 3 1.25 3.75L17 8l-3.75 1.25L12 13l-1.25-3.75L7 8l3.75-1.25L12 3Z"/><path d="m18.5 13 .75 2.25L21.5 16l-2.25.75L18.5 19l-.75-2.25L15.5 16l2.25-.75.75-2.25Z"/><path d="m5 13 .6 1.4L7 15l-1.4.6L5 17l-.6-1.4L3 15l1.4-.6L5 13Z"/></svg></span><span className="quick-menu-copy"><b>맞춤 추천</b><small>AI 맞춤 동아리</small></span><svg className="quick-menu-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></button>
+          <a href="/my/applications"><span className="quick-menu-icon quick-menu-applications" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M8 5H5.5A1.5 1.5 0 0 0 4 6.5v13A1.5 1.5 0 0 0 5.5 21h13a1.5 1.5 0 0 0 1.5-1.5v-13A1.5 1.5 0 0 0 18.5 5H16"/><rect x="8" y="3" width="8" height="4" rx="1.5"/><path d="m8 14 2.2 2.2L16 10.5"/></svg></span><span className="quick-menu-copy"><b>내 신청</b><small>신청 현황 확인</small></span><svg className="quick-menu-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>
+          <a href="/board"><span className="quick-menu-icon quick-menu-board" aria-hidden="true"><svg viewBox="0 0 24 24"><path d="M20 15a3 3 0 0 1-3 3H9l-5 3v-6a3 3 0 0 1-1-2.25V7a3 3 0 0 1 3-3h11a3 3 0 0 1 3 3v8Z"/><path d="M8 10h8M8 14h5"/></svg></span><span className="quick-menu-copy"><b>게시판</b><small>소식 &amp; 커뮤니티</small></span><svg className="quick-menu-chevron" viewBox="0 0 24 24" aria-hidden="true"><path d="m9 6 6 6-6 6"/></svg></a>
         </div>
       </section>
 
@@ -137,7 +138,7 @@ export default function Home() {
           <div className="empty-state"><b>조건에 맞는 동아리가 없어요.</b><span>검색어나 분야를 바꿔보세요.</span></div>
         ) : (
           <div className={`club-grid ${displayedClubs.length < 3 ? "compact" : ""}`}>
-            {displayedClubs.map((club, index) => (
+            {displayedClubs.map((club) => (
               <article
                 className="club-card ui-card"
                 key={club.club_id}
@@ -152,8 +153,8 @@ export default function Home() {
                   }
                 }}
               >
-                <div className="card-visual" style={{ background: club.color || ["#e9f7ef","#e8f1fb","#fbf0e8","#f0eafb"][index % 4] }}>
-                  {club.poster_url ? <img src={club.poster_url} alt=""/> : <span className="club-icon">{club.icon || ["⌘","⚛","◉","✦"][index % 4]}</span>}
+                <div className="card-visual" style={{ background: club.color || clubCategoryVisual(club.category).background }}>
+                  {club.poster_url ? <img src={club.poster_url} alt=""/> : <span className={`club-category-fallback category-${clubCategoryVisual(club.category).tone}`}><ClubCategoryIcon category={club.category}/></span>}
                   <span className={`status ${club.recruitment_status === "모집중" ? "open" : ""}`}>{club.recruitment_status}</span>
                 </div>
                 <div className="card-body">

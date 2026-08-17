@@ -41,7 +41,7 @@ export default function MyApplicationsClient() {
 
   return <PortalShell title="내 신청" description="신청한 동아리와 진행 상태를 확인하세요.">
     <section className="application-summary" aria-label="신청 상태 요약">
-      <div><span aria-hidden="true">▣</span><small>전체 신청</small><strong>{summary.all}</strong></div>
+      <div><span aria-hidden="true"><svg width="27" height="27" viewBox="0 0 24 24" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4V2.5h6V4M9 9h6M9 13h6M9 17h4"/></svg></span><small>전체 신청</small><strong>{summary.all}</strong></div>
       <div className="summary-waiting"><span aria-hidden="true">◷</span><small>대기</small><strong>{summary.waiting}</strong></div>
       <div className="summary-approved"><span aria-hidden="true">✓</span><small>승인</small><strong>{summary.approved}</strong></div>
       <div className="summary-rejected"><span aria-hidden="true">×</span><small>반려</small><strong>{summary.rejected}</strong></div>

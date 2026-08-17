@@ -1,12 +1,40 @@
 "use client";
-import { useEffect,useState } from "react";
+
 import Link from "next/link";
-import PortalShell from "../components/PortalShell";
+import { useEffect, useState } from "react";
+import { ClubCategoryIcon, clubCategoryVisual } from "../components/ClubCategoryIcon";
+import AdminShell from "./AdminShell";
+
+type ApplicationItem={id:string;studentName:string;studentGrade:string;clubName:string;clubCategory:string;status:string;submittedAt:string};
+type DashboardPayload={stats:{totalApplications:number;pendingReview:number;approved:number;rejected:number;teachers:number;clubs:number;unansweredQuestions:number;syncErrors:number};actionable:ApplicationItem[];recent:ApplicationItem[]};
+const statusLabels:Record<string,string>={submitted:"신청 완료",under_review:"검토 중",waiting:"검토 대기",approved:"승인",rejected:"반려",cancelled:"취소"};
+function Icon({name}:{name:string}){
+ const props={viewBox:"0 0 24 24",fill:"none",stroke:"currentColor",strokeWidth:1.8,strokeLinecap:"round" as const,strokeLinejoin:"round" as const,"aria-hidden":true};
+ if(name==="dashboard")return <svg {...props}><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>;
+ if(name==="clock")return <svg {...props}><circle cx="12" cy="12" r="9"/><path d="M12 7v5l3.5 2"/></svg>;
+ if(name==="check")return <svg {...props}><circle cx="12" cy="12" r="9"/><path d="m8 12 2.5 2.5L16.5 8.5"/></svg>;
+ if(name==="x")return <svg {...props}><circle cx="12" cy="12" r="9"/><path d="m9 9 6 6m0-6-6 6"/></svg>;
+ if(name==="users")return <svg {...props}><circle cx="9" cy="8" r="3"/><circle cx="17" cy="9" r="2.5"/><path d="M3.5 20v-1.5A5.5 5.5 0 0 1 9 13a5.5 5.5 0 0 1 5.5 5.5V20m-5.5-5.5a4.5 4.5 0 0 1 6.5 4V20"/></svg>;
+ if(name==="user")return <svg {...props}><circle cx="12" cy="8" r="3.5"/><path d="M5 21v-2a7 7 0 0 1 14 0v2"/></svg>;
+ if(name==="shield")return <svg {...props}><path d="M12 3 20 6v5c0 5-3.4 8.5-8 10-4.6-1.5-8-5-8-10V6l8-3Z"/><path d="m9 12 2 2 4-4"/></svg>;
+ if(name==="question")return <svg {...props}><path d="M21 11.5a8.4 8.4 0 0 1-9 8.5 9.8 9.8 0 0 1-4-.8L3 21l1.6-4.3A8.3 8.3 0 1 1 21 11.5Z"/><path d="M9.8 9a2.3 2.3 0 1 1 3.5 2c-.9.5-1.3 1-1.3 2M12 16h.01"/></svg>;
+ return <svg {...props}><rect x="5" y="4" width="14" height="17" rx="2"/><path d="M9 4.5V3h6v1.5M9 10h6m-6 4h6m-6 4h4"/></svg>;
+}
+
+function formatDate(value:string){return new Intl.DateTimeFormat("ko-KR",{year:"numeric",month:"2-digit",day:"2-digit",hour:"2-digit",minute:"2-digit"}).format(new Date(value))}
+
 export default function AdminClient(){
- const[stats,setStats]=useState<Record<string,number>|null>(null);const[error,setError]=useState("");const[sync,setSync]=useState("");
- useEffect(()=>{fetch("/api/admin/overview").then(async r=>{if(!r.ok){setError(r.status===403?"관리자 권한이 없습니다.":"익명 로그인이 필요합니다.");return}setStats((await r.json()).stats)})},[]);
- async function runSync(){setSync("동기화 중…");const r=await fetch("/api/admin/sync",{method:"POST"});const d=await r.json();setSync(r.ok?`${d.succeeded}건 동기화, ${d.failed}건 실패`:"동기화를 실행하지 못했습니다.")}
- return <PortalShell title="운영 관리자" description="익명 데이터, 모집 운영 및 Google Sheets 동기화 상태를 관리합니다.">
-  {error?<div className="empty-panel">{error}</div>:stats&&<><div className="stats-grid">{Object.entries({익명사용자:stats.users,전체신청:stats.applications,게시글:stats.posts,질문:stats.questions,동기화오류:stats.syncErrors}).map(([k,v])=><div className="stat" key={k}><span>{k}</span><b>{v}</b></div>)}</div><div className="portal-grid two"><div className="panel"><h2>신청 관리</h2><p>전체 신청을 조회하고 상태와 검토 의견을 관리합니다.</p><Link className="primary link-button" href="/admin/applications">신청 관리로 이동</Link></div><div className="panel"><h2>담당 교사 관리</h2><p>교사 역할을 지정하고 담당 동아리를 배정합니다.</p><div className="button-row"><Link className="secondary link-button" href="/admin/teachers">교사 관리</Link><Link className="secondary link-button" href="/admin/teacher-assignments">담당 배정</Link></div></div><div className="panel"><h2>Google Sheets 동기화</h2><p>DB 저장이 먼저 완료되며, 실패한 작업은 여기서 안전하게 재시도합니다.</p><button className="primary" onClick={runSync}>대기 작업 동기화</button>{sync&&<p>{sync}</p>}</div></div></>}
- </PortalShell>
+ const[data,setData]=useState<DashboardPayload|null>(null),[error,setError]=useState(""),[sync,setSync]=useState("");
+ useEffect(()=>{fetch("/api/admin/overview",{cache:"no-store"}).then(async response=>{if(!response.ok){setError(response.status===403?"관리자 권한이 없습니다.":"대시보드를 불러오지 못했습니다.");return}setData(await response.json())}).catch(()=>setError("대시보드를 불러오지 못했습니다."))},[]);
+ async function runSync(){setSync("동기화 중…");const response=await fetch("/api/admin/sync",{method:"POST"}),result=await response.json();setSync(response.ok?`${result.succeeded}건 동기화, ${result.failed}건 실패`:"동기화를 실행하지 못했습니다.")}
+ const kpis=data?[{label:"전체 신청",value:data.stats.totalApplications,description:"전체 신청 내역",icon:"clipboard",tone:"blue"},{label:"검토 대기",value:data.stats.pendingReview,description:"처리 대기 중",icon:"clock",tone:"orange"},{label:"승인",value:data.stats.approved,description:"승인 완료",icon:"check",tone:"green"},{label:"반려",value:data.stats.rejected,description:"반려 완료",icon:"x",tone:"red"},{label:"담당 교사",value:data.stats.teachers,description:"활동 중 교사 수",icon:"users",tone:"purple"},{label:"운영 동아리",value:data.stats.clubs,description:"현재 운영 중",icon:"shield",tone:"blue"}]:[];
+ return <AdminShell activePath="/admin"><main className="admin-dashboard-main"><div className="admin-dashboard-title"><h1>관리자 대시보드</h1><p>신청 및 동아리 운영 현황을 한눈에 확인하세요.</p></div>
+   {error?<div className="admin-dashboard-empty">{error}</div>:!data?<div className="admin-dashboard-empty">운영 현황을 불러오는 중입니다.</div>:<>
+    <section className="admin-kpi-grid" aria-label="운영 요약">{kpis.map(item=><Link href={item.label.includes("교사")?"/admin/teachers":item.label.includes("동아리")?"/admin/teacher-assignments":"/admin/applications"} className={`admin-kpi-card tone-${item.tone}`} key={item.label}><span className="admin-icon-box"><Icon name={item.icon}/></span><span><small>{item.label}</small><strong>{item.value}</strong><em>{item.description}</em></span><b aria-hidden="true">›</b></Link>)}</section>
+    <div className="admin-dashboard-middle"><section className="admin-dashboard-card admin-actionable"><header><h2>처리 필요한 신청</h2><Link href="/admin/applications">전체 신청 관리</Link></header>{data.actionable.length?<div>{data.actionable.map(item=>{const visual=clubCategoryVisual(item.clubCategory);return <article key={item.id}><span className={`admin-club-icon category-${visual.tone}`} style={{background:visual.background}}><ClubCategoryIcon category={item.clubCategory}/></span><div><strong>{item.clubName}</strong><small>학생 {item.studentName} · {item.studentGrade}</small><time dateTime={item.submittedAt}>신청일 {formatDate(item.submittedAt)}</time></div><span className={`admin-status state-${item.status}`}>{statusLabels[item.status]??item.status}</span><Link href={`/admin/applications/${item.id}`}>신청 보기 <b aria-hidden="true">›</b></Link></article>})}</div>:<p className="admin-inline-empty">현재 처리할 신청이 없습니다.</p>}</section>
+     <section className="admin-dashboard-card admin-operations"><header><h2>운영 현황</h2></header><div><article><span className="admin-icon-box tone-purple"><Icon name="users"/></span><div><small>담당 교사</small><strong>{data.stats.teachers}명</strong><em>활동 중 교사 수</em></div><Link href="/admin/teachers">교사 관리 <b>›</b></Link></article><article><span className="admin-icon-box tone-green"><Icon name="shield"/></span><div><small>운영 동아리</small><strong>{data.stats.clubs}개</strong><em>현재 운영 중</em></div><Link href="/admin/teacher-assignments">담당 배정 <b>›</b></Link></article><article><span className="admin-icon-box tone-purple"><Icon name="question"/></span><div><small>미답변 질문</small><strong>{data.stats.unansweredQuestions}건</strong><em>Q&amp;A 미답변</em></div><span className="admin-route-unavailable">관리 경로 없음</span></article></div></section></div>
+    <div className="admin-dashboard-bottom"><section className="admin-dashboard-card admin-recent"><header><h2>최근 신청</h2></header><div className="admin-recent-table" role="table" aria-label="최근 신청"><div className="admin-table-head" role="row"><span>신청자</span><span>동아리</span><span>학년</span><span>상태</span><span>신청일</span><span>관리</span></div>{data.recent.map(item=><div className="admin-table-row" role="row" key={item.id}><span data-label="신청자">{item.studentName}</span><span data-label="동아리">{item.clubName}</span><span data-label="학년">{item.studentGrade}</span><span data-label="상태"><b className={`admin-status state-${item.status}`}>{statusLabels[item.status]??item.status}</b></span><time data-label="신청일" dateTime={item.submittedAt}>{formatDate(item.submittedAt)}</time><Link href={`/admin/applications/${item.id}`}>상세 보기 ›</Link></div>)}</div></section>
+     <aside className="admin-dashboard-card admin-shortcuts"><header><h2>바로가기</h2></header><Link href="/admin/applications"><span><Icon name="clipboard"/></span><b>신청 관리<small>전체 신청 내역 및 승인/반려</small></b><em>›</em></Link><Link href="/admin/teachers"><span><Icon name="user"/></span><b>교사 관리<small>교사 계정 및 권한 관리</small></b><em>›</em></Link><Link href="/admin/teacher-assignments"><span><Icon name="users"/></span><b>담당 동아리 배정<small>교사별 담당 동아리 관리</small></b><em>›</em></Link><button type="button" onClick={runSync}><span><Icon name="dashboard"/></span><b>Google Sheets 동기화<small>{sync||`${data.stats.syncErrors}건 재시도 대기`}</small></b><em>›</em></button></aside></div>
+   </>}
+  </main></AdminShell>;
 }

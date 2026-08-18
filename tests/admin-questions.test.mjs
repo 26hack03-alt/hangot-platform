@@ -1,0 +1,17 @@
+import assert from "node:assert/strict";
+import { readFile,readdir } from "node:fs/promises";
+import test from "node:test";
+
+const root=new URL("../",import.meta.url),read=path=>readFile(new URL(path,root),"utf8");
+
+test("admin Q&A pages and read APIs require the server admin role",async()=>{const[layout,page,list,detail]=await Promise.all([read("app/admin/layout.tsx"),read("app/admin/questions/page.tsx"),read("app/api/admin/questions/route.ts"),read("app/api/admin/questions/[id]/route.ts")]);assert.match(layout,/requirePageRole\(\["admin"\]/);assert.match(page,/AdminQuestionsClient/);for(const source of[list,detail])assert.match(source,/requireUser\(\["admin"\]\)/)});
+
+test("admin question list supports live status, privacy, club, search, and period filters",async()=>{const[route,repo]=await Promise.all([read("app/api/admin/questions/route.ts"),read("app/lib/database/questions.ts")]);for(const value of["waiting","answered","closed","private","public","clubId","search","period"])assert.match(route,new RegExp(value));assert.match(route,/statusCounts/);assert.match(route,/privateCount/);assert.match(repo,/listAdminQuestions/);assert.match(repo,/deleted_at:"is\.null"/)});
+
+test("admin Q&A responses are anonymous and expose no identity fields",async()=>{const sources=await Promise.all([read("app/api/admin/questions/route.ts"),read("app/api/admin/questions/[id]/route.ts"),read("app/admin/questions/AdminQuestionsClient.tsx")]);for(const source of sources){assert.match(source,/익명/);assert.doesNotMatch(source,/studentName|studentNumber|email|authUserId|authorUserId|accessToken|refreshToken/)}});
+
+test("admin UI reuses the existing safe answer endpoint and handles conflicts",async()=>{const[client,answer,rpc]=await Promise.all([read("app/admin/questions/AdminQuestionsClient.tsx"),read("app/api/questions/[id]/answer/route.ts"),read("supabase/migrations/202608160002_qna_answer_notifications.sql")]);assert.match(client,/`\/api\/questions\/\$\{detail\.id\}\/answer`/);assert.match(client,/method:"POST"/);assert.match(client,/QUESTION_ALREADY_ANSWERED|QUESTION_CONFLICT/);assert.match(answer,/answerQuestion/);assert.match(answer,/status !== "waiting"/);assert.match(rpc,/for update/);assert.match(rpc,/v_question\.status <> 'waiting'/);assert.match(rpc,/insert into public\.notifications/)});
+
+test("admin Q&A UI provides quick filters, responsive list, drawer, and answer composer",async()=>{const[shell,client,css]=await Promise.all([read("app/admin/AdminShell.tsx"),read("app/admin/questions/AdminQuestionsClient.tsx"),read("app/portal.css")]);assert.match(shell,/href:"\/admin\/questions"/);assert.match(client,/activePath="\/admin\/questions"/);for(const value of["Q&A 관리","전체","미답변","답변완료","비공개","질문 상세","기존 답변","답변 작성","학생에게 전달할 답변을 작성해 주세요."])assert.match(client,new RegExp(value.replace(/[?&]/g,"\\$&")));assert.match(css,/\.admin-question-table/);assert.match(css,/\.admin-question-drawer/);assert.match(css,/@media\(max-width:700px\)[\s\S]*\.admin-question-table-row/)});
+
+test("Q&A management adds no migration or delete flow",async()=>{const files=await readdir(new URL("supabase/migrations/",root));assert.equal(files.filter(name=>name.includes("question")||name.includes("qna")).length,1);const sources=await Promise.all([read("app/api/admin/questions/route.ts"),read("app/api/admin/questions/[id]/route.ts"),read("app/admin/questions/AdminQuestionsClient.tsx")]);assert.doesNotMatch(sources.join("\n"),/method:\s*"DELETE"|deleteQuestion|deleteAnswer/)});

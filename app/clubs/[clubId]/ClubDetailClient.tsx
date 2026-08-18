@@ -33,7 +33,7 @@ export default function ClubDetailClient({club}:{club:ClubSource}){
     <section className="detail-info-card" id="activities"><h2>주요 활동</h2>{activities.length?<ul>{activities.map((item,index)=><li key={`${item}-${index}`}><span aria-hidden="true">✓</span>{item}</li>)}</ul>:<p>등록된 주요 활동 정보가 없습니다.</p>}</section>
     <section className="detail-data-grid" id="inquiry"><div><span><DetailIcon type="location"/></span><dl><dt>활동 장소</dt><dd>{club.location||"추후 안내"}</dd></dl></div><div><span><DetailIcon type="layers"/></span><dl><dt>동아리 유형</dt><dd>{club.selection_type}</dd></dl></div><div><span><DetailIcon type="category"/></span><dl><dt>분야</dt><dd>{club.category}</dd></dl></div><div><span><DetailIcon type="students"/></span><dl><dt>대상 학년</dt><dd>{club.grade||"전 학년"}</dd></dl></div></section>
     {careers.length>0&&<section className="detail-info-card" id="careers"><h2>관련 진로</h2><div className="career-chips">{careers.map((career,index)=><span key={`${career}-${index}`}>{career}</span>)}</div></section>}
-    <div className="club-detail-actions"><FavoriteButton clubId={club.club_id} clubName={club.club_name} variant="detail"/><Link className="club-apply-cta" href={`/clubs/${club.club_id}/apply`}>신청하기</Link></div>
+    <div className="club-detail-actions"><FavoriteButton clubId={club.club_id} clubName={club.club_name} variant="detailIcon"/><Link className="club-apply-cta" href={`/clubs/${club.club_id}/apply`}>신청하기</Link></div>
    </div>
   </article>
   <nav className="mobile-nav" aria-label="모바일 메뉴"><a href="/"><span>⌂</span>홈</a><a className="active" href="/clubs"><span>⌕</span>동아리</a><a href="/my/applications"><span>▣</span>내 신청</a><a href="/board"><span>▤</span>게시판</a><a href="/questions"><span>◌</span>질의응답</a></nav>

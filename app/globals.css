@@ -93,3 +93,16 @@ a:active,button:not(:disabled):active,[role="button"]:active,.club-card:active{t
   .rank-copy strong{font-weight:900}
   .rank-copy p{font-size:11px;font-weight:550}
 }
+
+/* Compact favorite control for the club-detail CTA. */
+.club-detail-actions{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:12px}
+.club-detail-actions>.club-apply-cta{grid-column:1;grid-row:1;width:100%;min-width:0;flex:none}
+.favorite-detailIcon{position:relative;inset:auto;display:block;grid-column:2;grid-row:1;width:44px;height:44px;align-self:center}
+.favorite-detailIcon>small{top:auto;right:0;bottom:52px;left:auto;width:min(250px,calc(100vw - 32px))}
+
+@media(max-width:760px){
+  .club-detail-actions{display:grid;grid-template-columns:1fr;gap:10px;align-items:stretch}
+  .favorite-detailIcon{grid-column:1;grid-row:1;justify-self:end;width:44px;height:44px}
+  .favorite-detailIcon>small{top:auto;right:0;bottom:48px;left:auto;width:min(250px,calc(100vw - 32px))}
+  .club-detail-actions>.club-apply-cta{grid-column:1;grid-row:2;width:100%;min-width:0}
+}

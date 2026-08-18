@@ -16,9 +16,9 @@ export function FavoriteProvider({children}:{children:React.ReactNode}){
 
 export function useFavorites(){const value=useContext(FavoriteContext);if(!value)throw new Error("Favorite components require FavoriteProvider.");return{...value,isFavorite:(clubId:string)=>value.favorites.has(clubId)}}
 
-export function FavoriteButton({clubId,clubName,variant="icon"}:{clubId:string;clubName:string;variant?:"icon"|"detail"}){
+export function FavoriteButton({clubId,clubName,variant="icon"}:{clubId:string;clubName:string;variant?:"icon"|"detailIcon"}){
  const{authenticated,pending,toggle,isFavorite}=useFavorites(),favorite=isFavorite(clubId),busy=pending.has(clubId),[message,setMessage]=useState("");
  async function handleClick(event:React.MouseEvent<HTMLButtonElement>){event.preventDefault();event.stopPropagation();if(busy)return;if(!authenticated){setMessage("로그인 후 관심 동아리를 저장할 수 있습니다.");return}setMessage("");try{await toggle(clubId)}catch(error){setMessage(error instanceof Error&&error.message==="AUTH_REQUIRED"?"로그인 후 관심 동아리를 저장할 수 있습니다.":"즐겨찾기를 변경하지 못했습니다. 다시 시도해 주세요.")}}
  const label=favorite?`${clubName} 즐겨찾기에서 제거`:`${clubName} 즐겨찾기에 추가`;
- return <span className={`favorite-control favorite-${variant}`} onClick={event=>event.stopPropagation()} onKeyDown={event=>event.stopPropagation()}><button className={favorite?"is-favorite":""} type="button" aria-label={label} aria-pressed={favorite} disabled={busy} onClick={handleClick}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.75A1.75 1.75 0 0 1 7.75 3h8.5A1.75 1.75 0 0 1 18 4.75V21l-6-3.8L6 21V4.75Z"/></svg>{variant==="detail"&&<span>{favorite?"관심 동아리 담김":"관심 동아리 담기"}</span>}</button>{message&&<small role="status">{message} <Link href="/login">로그인</Link></small>}</span>;
+ return <span className={`favorite-control favorite-${variant}`} onClick={event=>event.stopPropagation()} onKeyDown={event=>event.stopPropagation()}><button className={favorite?"is-favorite":""} type="button" aria-label={label} aria-pressed={favorite} disabled={busy} onClick={handleClick}><svg viewBox="0 0 24 24" aria-hidden="true"><path d="M6 4.75A1.75 1.75 0 0 1 7.75 3h8.5A1.75 1.75 0 0 1 18 4.75V21l-6-3.8L6 21V4.75Z"/></svg></button>{message&&<small role="status">{message} <Link href="/login">로그인</Link></small>}</span>;
 }

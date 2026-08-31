@@ -1,7 +1,8 @@
 import { countActiveClubApplications, createApplication, findDuplicateApplication } from "../../lib/database/applications";
+import { applicationPeriodSnapshot } from "../../lib/database/application-settings";
 import { ensureClub, findDatabaseClub } from "../../lib/database/clubs";
-import { upsertSyncJob } from "../../lib/database/sync";
 import { applicationAvailability, findClub } from "../../lib/clubs";
+import { applicationPeriodError } from "../../lib/application-period";
 import { checkRateLimit, hasOversizedBody } from "../../lib/rate-limit";
 import { hasPersonalDataPattern, id, requireUser, sameOrigin, sanitizeText, shortCode } from "../../lib/security";
 
@@ -30,6 +31,9 @@ export async function POST(request: Request) {
   if (!club || !club.is_active || club.recruitment_status !== "open") return Response.json({ error: "RECRUITMENT_CLOSED" }, { status: 409 });
   if ((club.application_start_at && new Date(club.application_start_at) > now) || (club.application_end_at && new Date(club.application_end_at) < now)) return Response.json({ error: "OUTSIDE_APPLICATION_PERIOD" }, { status: 409 });
   if (await countActiveClubApplications(clubId) >= club.capacity) return Response.json({ error: "CAPACITY_FULL" }, { status: 409 });
+  const globalPeriod = await applicationPeriodSnapshot();
+  const periodError = applicationPeriodError(globalPeriod.status);
+  if (periodError) return Response.json({ error: periodError }, { status: 409 });
   const applicationId = id("app"), applicationNumber = shortCode("APP", 6), timestamp = now.toISOString();
   try {
     await createApplication({ id: applicationId, application_number: applicationNumber, user_id: auth.user.id, club_id: clubId, status: "submitted", motivation, interest_area: interestArea, career_interest: careerInterest, experience, additional_answer: additionalMessage, submitted_at: timestamp, updated_at: timestamp });
@@ -37,7 +41,6 @@ export async function POST(request: Request) {
     if (error instanceof Error && error.message === "DUPLICATE_APPLICATION") return Response.json({ error: "DUPLICATE_APPLICATION" }, { status: 409 });
     throw error;
   }
-  await upsertSyncJob({ id: id("sync"), data_type: "application", source_id: applicationId, operation: "upsert", payload: { applicationNumber, alias: auth.user.alias, clubId, clubName: sourceClub.club_name, status: "submitted", motivation, interestArea, careerInterest, experience, additionalMessage, submittedAt: timestamp }, status: "pending", created_at: timestamp, updated_at: timestamp });
   return Response.json({ application: { id: applicationId, applicationNumber, clubId, clubName: sourceClub.club_name, status: "submitted", submittedAt: now } }, { status: 201 });
 }
 

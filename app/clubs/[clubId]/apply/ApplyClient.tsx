@@ -1,10 +1,12 @@
 "use client";
 
 import Link from "next/link";
-import { FormEvent,useState } from "react";
+import { FormEvent,useEffect,useState } from "react";
 import { useRouter } from "next/navigation";
 import { HeaderAccount,HeaderSessionProvider } from "../../../components/HeaderSession";
+import MobileBottomNav from"../../../components/MobileBottomNav";
 import type{ApplicationAvailability,ClubSource}from"../../../lib/clubs";
+import { formatApplicationPeriodDate,type ApplicationPeriodSnapshot } from "../../../lib/application-period";
 
 const initialForm={motivation:"",interestArea:"",careerInterest:"",experience:"",additionalMessage:"",confirmed:false};
 const openStatus=(value:string)=>["모집중","추가모집중","신청가능"].includes(value.replace(/\s+/g,""));
@@ -17,16 +19,18 @@ const fieldIcon=(key:"motivation"|"interestArea"|"careerInterest"|"experience"|"
 };
 
 export default function ApplyClient({club,availability,applicant}:{club:ClubSource;availability:ApplicationAvailability;applicant:{studentName:string;studentNumber:string}|null}){
- const router=useRouter();const[form,setForm]=useState(initialForm);const[message,setMessage]=useState("");const[submitting,setSubmitting]=useState(false);const canApply=availability==="open";const applyPath=`/clubs/${club.club_id}/apply`;const profileHref=`/profile?next=${encodeURIComponent(applyPath)}`;
+ const router=useRouter();const[form,setForm]=useState(initialForm);const[message,setMessage]=useState("");const[submitting,setSubmitting]=useState(false);const[period,setPeriod]=useState<ApplicationPeriodSnapshot|null>(null);const canApply=availability==="open"&&period?.status==="open";const applyPath=`/clubs/${club.club_id}/apply`;const profileHref=`/profile?next=${encodeURIComponent(applyPath)}`;
+ useEffect(()=>{fetch("/api/application-period",{cache:"no-store"}).then(response=>response.json()).then(setPeriod).catch(()=>setPeriod({startAt:null,endAt:null,status:"not_configured",serverNow:new Date().toISOString()}))},[]);
  // Preserve the duplicate-submit guard contract: if (submitting) return.
  async function submit(event:FormEvent){event.preventDefault();if(submitting)return;setMessage("");if(!applicant)return setMessage("동아리 신청 전에 학생 정보 등록이 필요합니다.");if(form.motivation.trim().length<20)return setMessage("지원 동기는 20자 이상 작성해 주세요.");if(!form.interestArea.trim())return setMessage("관심 분야를 작성해 주세요.");if(!form.careerInterest.trim())return setMessage("희망 진로를 작성해 주세요.");if(!form.experience.trim())return setMessage("관련 활동 경험을 작성해 주세요.");if(!form.confirmed)return setMessage("제출 내용을 확인해 주세요.");setSubmitting(true);try{const response=await fetch("/api/applications",{method:"POST",headers:{"content-type":"application/json"},body:JSON.stringify({clubId:club.club_id,...form})});const data=await response.json().catch(()=>({}));if(response.status===401)return router.push(`/login?next=${encodeURIComponent(applyPath)}`);if(data.error==="PROFILE_REQUIRED"){setMessage("동아리 신청 전에 학생 정보 등록이 필요합니다.");return}const errors:Record<string,string>={AUTH_REQUIRED:"로그인이 필요합니다.",PROFILE_REQUIRED:"동아리 신청 전에 학생 정보 등록이 필요합니다.",PERSONAL_DATA_DETECTED:"지원 내용에 입력하면 안 되는 개인정보가 포함되어 있습니다.",DUPLICATE_APPLICATION:"이미 신청한 동아리입니다.",CAPACITY_FULL:"모집 인원이 마감되었습니다.",RECRUITMENT_CLOSED:"현재 신청할 수 없는 동아리입니다.",INQUIRY_ONLY:"이 동아리는 직접 신청이 아니라 담당자 문의가 필요합니다.",CONFIRMATION_REQUIRED:"제출 내용을 확인해 주세요.",INVALID_FIELDS:"입력 내용과 글자 수를 확인해 주세요.",RATE_LIMITED:"요청이 너무 많습니다. 잠시 후 다시 시도해 주세요.",INVALID_ORIGIN:"요청을 처리할 수 없습니다. 페이지를 새로고침한 후 다시 시도해 주세요."};if(!response.ok)return setMessage(errors[data.error]??"신청 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.");router.push(`/my/applications/${data.application.id}?created=1`)}catch{setMessage("신청 처리 중 문제가 발생했습니다. 잠시 후 다시 시도해 주세요.")}finally{setSubmitting(false)}}
  const blockedMessage=availability==="inquiry"?"이 동아리는 직접 신청이 아니라 담당자 문의가 필요합니다.":"현재 모집이 마감되었거나 모집 정보를 확인해야 합니다.";
+ const periodMessage=!period?"신청 기간을 확인하는 중입니다.":period.status==="not_configured"?"동아리 신청 기간이 아직 설정되지 않았습니다.":period.status==="before"?`동아리 신청은 ${period.startAt?formatApplicationPeriodDate(period.startAt):"설정된 시작 시각"}부터 가능합니다.`:period.status==="closed"?"동아리 신청 기간이 종료되었습니다.":"";
  const field=(number:number,label:string,key:"motivation"|"interestArea"|"careerInterest"|"experience"|"additionalMessage",maxLength:number,required:boolean,large:boolean)=><label className="application-question"><span className="question-number">{number}</span><span className={`question-icon question-icon-${key}`}>{fieldIcon(key)}</span><span className="question-heading"><b>{label}</b><small className={required?"required":"optional"}>{required?"필수":"선택"}</small></span><span className="application-control">{large?<textarea required={required} minLength={key==="motivation"?20:required?1:undefined} maxLength={maxLength} value={form[key] as string} placeholder={`${label}을 작성해 주세요. (${key==="motivation"?"20~":""}${maxLength}자)`} onChange={event=>setForm({...form,[key]:event.target.value})}/>:<input required={required} minLength={required?1:undefined} maxLength={maxLength} value={form[key] as string} placeholder={`${label}을 작성해 주세요. (최대 ${maxLength}자)`} onChange={event=>setForm({...form,[key]:event.target.value})}/>}<span className="character-count">{(form[key] as string).length}/{maxLength}</span></span></label>;
  return <main className="app-shell apply-page">
   <HeaderSessionProvider><header className="club-detail-header"><Link className="detail-back" href={`/clubs/${club.club_id}`} aria-label="동아리 상세로">‹</Link><Link className="brand" href="/" aria-label="한곳 홈"><img className="brand-logo" src="/hangot-logo.png" alt="" width="36" height="36"/><span>한<span className="brand-accent">곳</span></span></Link><HeaderAccount/></header></HeaderSessionProvider>
   <div className="apply-main"><header className="apply-heading"><h1>동아리 신청</h1><Link href={`/clubs/${club.club_id}`}>{club.club_name}<span aria-hidden="true">›</span></Link></header>
    <section className="apply-club-card"><div className="apply-club-poster" style={{background:club.color||"#edf3fb"}}>{club.poster_url?<img src={club.poster_url} alt=""/>:<span>{club.icon||"✦"}</span>}</div><div className="apply-club-copy"><div className="club-detail-badges"><span className={openStatus(club.recruitment_status)?"open":""}>{club.recruitment_status}</span><span>{club.category}</span></div><h2>{club.club_name}</h2><p>{club.introduction}</p></div><dl className="apply-club-facts"><div><dt>◎<span>대상 학년</span></dt><dd>{club.grade||"전 학년"}</dd></div><div><dt>▣<span>동아리 유형</span></dt><dd>{club.selection_type}</dd></div><div><dt>⌖<span>활동 장소</span></dt><dd>{club.location||"추후 안내"}</dd></div></dl></section>
-   {!applicant?<div className="empty-panel profile-required-panel"><p>동아리 신청 전에 학생 정보 등록이 필요합니다.</p><Link className="primary link-button" href={profileHref}>학생 정보 등록</Link></div>:!canApply?<div className="empty-panel"><p>{blockedMessage}</p></div>:<>
+   {!period||period.status!=="open"?<div className="empty-panel application-period-blocked"><p>{periodMessage}</p></div>:!applicant?<div className="empty-panel profile-required-panel"><p>동아리 신청 전에 학생 정보 등록이 필요합니다.</p><Link className="primary link-button" href={profileHref}>학생 정보 등록</Link></div>:!canApply?<div className="empty-panel"><p>{blockedMessage}</p></div>:<>
     <section className="apply-applicant-card" aria-label={`신청자 ${applicant.studentNumber} ${applicant.studentName}`}><h2>신청자 정보</h2><dl><div><dt>이름</dt><dd>{applicant.studentName}</dd></div><div><dt>학번</dt><dd>{applicant.studentNumber}</dd></div></dl><p>* 등록된 학생 정보가 자동으로 불러와집니다.</p></section>
     <form className="apply-form" onSubmit={submit}><section className="apply-writing-card"><h2>지원서 작성 <small>필수</small></h2>{field(1,"지원 동기","motivation",1000,true,true)}{field(2,"관심 분야","interestArea",300,true,false)}{field(3,"희망 진로","careerInterest",300,true,false)}{field(4,"관련 활동 경험","experience",1000,true,true)}{field(5,"추가 전달 내용","additionalMessage",500,false,true)}</section>
      <div className="apply-privacy"><b>신청 내용 개인정보 안내</b><p>이름과 학번은 로그인 계정에 등록된 학생 정보를 사용합니다. 지원 동기와 추가 내용에는 전화번호, 이메일, 주소, 주민등록번호 등 신청에 필요하지 않은 개인정보를 입력하지 마세요.</p></div>
@@ -34,6 +38,6 @@ export default function ApplyClient({club,availability,applicant}:{club:ClubSour
     </form>
    </>}
   </div>
-  <nav className="mobile-nav" aria-label="모바일 메뉴"><a href="/"><span>⌂</span>홈</a><a className="active" href="/clubs"><span>⌕</span>동아리</a><a href="/my/applications"><span>▣</span>내 신청</a><a href="/board"><span>▤</span>게시판</a><a href="/questions"><span>◌</span>질의응답</a></nav>
+  <MobileBottomNav/>
  </main>
 }

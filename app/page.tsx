@@ -4,6 +4,8 @@ import { useEffect, useMemo, useState } from "react";
 import { ClubCategoryIcon,clubCategoryVisual } from "./components/ClubCategoryIcon";
 import { FavoriteButton } from "./components/FavoriteButton";
 import { HeaderAccount, HeaderNotifications, HeaderRoleLink, HeaderSessionProvider } from "./components/HeaderSession";
+import MobileBottomNav from"./components/MobileBottomNav";
+import type { ApplicationPeriodStatus } from "./lib/application-period";
 
 type Club = {
   club_id: string;
@@ -22,6 +24,8 @@ type Club = {
   grade?: string;
 };
 
+const combinedRecruitmentLabel=(status:string,period:ApplicationPeriodStatus|null)=>{const open=["모집중","추가모집중","신청가능"].includes(status.replace(/\s+/g,""));if(!open||period==="open"||!period)return status;if(period==="before")return "신청 기간 전";if(period==="closed")return "신청 종료";return "신청 기간 미설정"};
+
 export default function Home() {
   const [clubs, setClubs] = useState<Club[]>([]);
   const [query, setQuery] = useState("");
@@ -29,6 +33,7 @@ export default function Home() {
   const [selected, setSelected] = useState<Club | null>(null);
   const [showRecommend, setShowRecommend] = useState(false);
   const [loading, setLoading] = useState(true);
+  const [periodStatus, setPeriodStatus] = useState<ApplicationPeriodStatus|null>(null);
 
   useEffect(() => {
     fetch("/api/clubs")
@@ -36,6 +41,7 @@ export default function Home() {
       .then((data) => setClubs(data.clubs ?? []))
       .finally(() => setLoading(false));
   }, []);
+  useEffect(()=>{fetch("/api/application-period",{cache:"no-store"}).then(response=>response.json()).then(data=>setPeriodStatus(data.status)).catch(()=>setPeriodStatus("not_configured"))},[]);
 
   const filtered = useMemo(() => {
     const normalize = (value: string) =>
@@ -160,7 +166,7 @@ export default function Home() {
                 <div className="card-body">
                   <div className="club-card-top">
                     <div className="club-card-badges">
-                      <span className={`status ${club.recruitment_status === "모집중" ? "open" : ""}`}>{club.recruitment_status}</span>
+                      <span className={`status ${club.recruitment_status === "모집중"&&periodStatus==="open" ? "open" : ""}`}>{combinedRecruitmentLabel(club.recruitment_status,periodStatus)}</span>
                       <span className="category-label">{club.category}</span>
                     </div>
                     <FavoriteButton clubId={club.club_id} clubName={club.club_name}/>
@@ -177,13 +183,7 @@ export default function Home() {
         {!loading && <a className="show-all-clubs" href="/clubs">동아리 전체보기 <span aria-hidden="true">›</span></a>}
       </section>
 
-      <nav className="mobile-nav" aria-label="모바일 메뉴">
-        <a className="active" href="/"><span>⌂</span>홈</a>
-        <a href="/clubs"><span>⌕</span>동아리</a>
-        <a href="/my/applications"><span>▣</span>내 신청</a>
-        <a href="/board"><span>▤</span>게시판</a>
-        <a href="/questions"><span>◌</span>질의응답</a>
-      </nav>
+      <MobileBottomNav/>
 
       {selected && (
         <div className="modal-backdrop" onMouseDown={() => setSelected(null)}>
@@ -191,7 +191,7 @@ export default function Home() {
             <button className="close" onClick={() => setSelected(null)} aria-label="닫기">×</button>
             <div className="detail-visual" style={{ background: selected.color || "#e9f7ef" }}>{selected.poster_url ? <img src={selected.poster_url} alt=""/> : <span>{selected.icon || "✦"}</span>}</div>
             <div className="detail-content">
-              <div className="detail-tags"><span className="open">{selected.recruitment_status}</span></div>
+              <div className="detail-tags"><span className={periodStatus==="open"?"open":""}>{combinedRecruitmentLabel(selected.recruitment_status,periodStatus)}</span></div>
               <h2>{selected.club_name}</h2>
               <div className="detail-facts"><span>{selected.category}</span><span>{selected.grade || "전 학년"}</span><span>{selected.selection_type}</span></div>
               <section><h3>동아리 소개</h3><p className="lead">{selected.introduction}</p></section>
@@ -204,12 +204,12 @@ export default function Home() {
         </div>
       )}
 
-      {showRecommend && <RecommendModal clubs={clubs} onClose={() => setShowRecommend(false)}/>}
+      {showRecommend && <RecommendModal clubs={clubs} periodStatus={periodStatus} onClose={() => setShowRecommend(false)}/>}
     </main>
   );
 }
 
-function RecommendModal({ clubs, onClose }: { clubs: Club[]; onClose: () => void }) {
+function RecommendModal({ clubs, periodStatus, onClose }: { clubs: Club[]; periodStatus:ApplicationPeriodStatus|null; onClose: () => void }) {
   const [step, setStep] = useState(0);
   const [detailClub, setDetailClub] = useState<Club | null>(null);
   const [interest, setInterest] = useState("");
@@ -237,7 +237,7 @@ function RecommendModal({ clubs, onClose }: { clubs: Club[]; onClose: () => void
       <div className="ai-modal-head"><span className="ai-orb small">✦</span><div><small>SAEROM AI</small><h2>나만의 동아리 추천</h2></div></div>
       {detailClub ? <div className="recommend-detail">
         <button className="back-to-ranks" onClick={() => setDetailClub(null)}>← 추천 순위로 돌아가기</button>
-        <div className="detail-tags"><span>{detailClub.category}</span><span className="open">{detailClub.recruitment_status}</span></div>
+        <div className="detail-tags"><span>{detailClub.category}</span><span className={periodStatus==="open"?"open":""}>{combinedRecruitmentLabel(detailClub.recruitment_status,periodStatus)}</span></div>
         <h3>{detailClub.club_name}</h3>
         <p className="recommend-lead">{detailClub.introduction}</p>
         <div className="basic-info"><div><span>대상 학년</span><b>{detailClub.grade || "전 학년"}</b></div></div>

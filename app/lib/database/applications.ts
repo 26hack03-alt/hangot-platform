@@ -17,4 +17,12 @@ export async function listApplications(options:ApplicationSearchOptions&{page:nu
 export async function listActionableApplications(limit=5){return databaseRequest<ApplicationRow[]>(`applications?${query({select,order:"submitted_at.desc",limit,status:"in.(submitted,under_review,waiting)"})}`)}
 export async function countApplications(options:ApplicationSearchOptions){const rows=await databaseRequest<Array<{id:string}>>(`applications?${query({select:"id",status:options.status?`eq.${options.status}`:undefined,club_id:options.clubId?`eq.${options.clubId}`:options.clubIds?`in.(${options.clubIds.join(",")})`:undefined,submitted_at:options.startDate?`gte.${options.startDate}`:undefined,and:options.endDate?`(submitted_at.lte.${options.endDate})`:undefined,or:searchFilter(options.search,options.searchUserIds)})}`);return rows.length}
 export async function applicationStatusCounts(){const rows=await databaseRequest<Array<{status:ApplicationStatus}>>("applications?select=status");return rows.reduce<Record<string,number>>((a,r)=>(a[r.status]=(a[r.status]??0)+1,a),{})}
+export type ApplicationSheetRow=Pick<ApplicationRow,"id"|"application_number"|"club_id"|"status"|"submitted_at"|"updated_at"|"reviewed_at"|"cancelled_at">&{clubs?:{name:string}|null};
+export async function listApplicationSheetSnapshot(){
+ const rows:ApplicationSheetRow[]=[],pageSize=1000;
+ for(let offset=0;;offset+=pageSize){
+  const page=await databaseRequest<ApplicationSheetRow[]>(`applications?${query({select:"id,application_number,club_id,status,submitted_at,updated_at,reviewed_at,cancelled_at,clubs(name)",order:"submitted_at.asc,id.asc",limit:pageSize,offset})}`);
+  rows.push(...page);if(page.length<pageSize)return rows;
+ }
+}
 export async function reviewApplication(input:{applicationId:string;expectedStatus:string;nextStatus:string;reviewComment:string|null;actorUserId:string;actorRole:"admin"|"teacher"}){return databaseRequest<ApplicationRow[]>("rpc/review_application",{method:"POST",body:JSON.stringify({p_application_id:input.applicationId,p_expected_status:input.expectedStatus,p_next_status:input.nextStatus,p_review_comment:input.reviewComment,p_actor_user_id:input.actorUserId,p_actor_role:input.actorRole})})}

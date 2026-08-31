@@ -97,6 +97,8 @@ a:active,button:not(:disabled):active,[role="button"]:active,.club-card:active{t
 /* Compact favorite control for the club-detail CTA. */
 .club-detail-actions{display:grid;grid-template-columns:minmax(0,1fr) 44px;gap:12px}
 .club-detail-actions>.club-apply-cta{grid-column:1;grid-row:1;width:100%;min-width:0;flex:none}
+.club-apply-cta.is-disabled{border-color:#d8e1ed;background:#e9eef5;color:#6d7b8e;cursor:not-allowed;box-shadow:none}
+.club-detail-actions>.application-period-note{grid-column:1/-1;grid-row:2;margin:0;color:#667790;font-size:12px;text-align:center}
 .favorite-detailIcon{position:relative;inset:auto;display:block;grid-column:2;grid-row:1;width:44px;height:44px;align-self:center}
 .favorite-detailIcon>small{top:auto;right:0;bottom:52px;left:auto;width:min(250px,calc(100vw - 32px))}
 
@@ -105,4 +107,5 @@ a:active,button:not(:disabled):active,[role="button"]:active,.club-card:active{t
   .favorite-detailIcon{grid-column:1;grid-row:1;justify-self:end;width:44px;height:44px}
   .favorite-detailIcon>small{top:auto;right:0;bottom:48px;left:auto;width:min(250px,calc(100vw - 32px))}
   .club-detail-actions>.club-apply-cta{grid-column:1;grid-row:2;width:100%;min-width:0}
+  .club-detail-actions>.application-period-note{grid-row:3}
 }

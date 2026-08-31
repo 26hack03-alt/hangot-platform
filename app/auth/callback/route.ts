@@ -1,6 +1,8 @@
 import { NextResponse } from "next/server";
 import { checkRateLimit } from "../../lib/rate-limit";
-import { ensureGoogleAppUser } from "../../lib/security";
+import { findUserByAuthId } from "../../lib/database/users";
+import { isSchoolGoogleEmail,normalizeGoogleEmail } from "../../lib/login-policy";
+import { claimApprovedGoogleAppUser,ensureGoogleAppUser } from "../../lib/security";
 import { authRequest, clearOAuthFlow, clearProviderSession, readOAuthFlow, setProviderSession } from "../../lib/supabase-auth";
 
 export async function GET(request: Request) {
@@ -29,15 +31,13 @@ export async function GET(request: Request) {
   await clearOAuthFlow();
   if (!response?.ok) return NextResponse.redirect(new URL("/login?error=oauth-failed", appOrigin));
   const data = await response.json() as { access_token: string; refresh_token: string; expires_in: number; user?: { id?: string; email?: string } };
-  const email = data.user?.email?.toLowerCase();
-  const allowedDomain = process.env.ALLOWED_GOOGLE_DOMAIN?.trim().toLowerCase();
-  if (allowedDomain && (!email || email.split("@")[1] !== allowedDomain)) {
-    await authRequest("/logout", { method: "POST", headers: { authorization: `Bearer ${data.access_token}` } }).catch(() => null);
-    await clearProviderSession();
-    return NextResponse.redirect(new URL("/login?error=domain", appOrigin));
-  }
   if (!data.user?.id) return NextResponse.redirect(new URL("/login?error=oauth-failed", appOrigin));
-  await ensureGoogleAppUser({ id: data.user.id, email });
+  const email=normalizeGoogleEmail(data.user.email),schoolAccount=isSchoolGoogleEmail(email,process.env.ALLOWED_GOOGLE_DOMAIN),existing=await findUserByAuthId(data.user.id);
+  const reject=async(code:string)=>{await authRequest("/logout",{method:"POST",headers:{authorization:`Bearer ${data.access_token}`}}).catch(()=>null);await clearProviderSession();return NextResponse.redirect(new URL(`/login?error=${code}`,appOrigin))};
+  if(existing&&!existing.isActive)return reject("account-inactive");
+  let user=existing;
+  if(existing){if(existing.role==="student"&&!schoolAccount)return reject("external-account-not-approved")}else if(schoolAccount){user=await ensureGoogleAppUser({id:data.user.id,email})}else if(email){user=await claimApprovedGoogleAppUser({id:data.user.id,email},email)}
+  if(!user)return reject("external-account-not-approved");
   await setProviderSession(data.access_token, data.refresh_token, data.expires_in);
   return NextResponse.redirect(new URL(flow.next, appOrigin));
 }

@@ -3,6 +3,8 @@ import PortalShell from "../components/PortalShell";
 
 const errors: Record<string, string> = {
   domain: "허용된 학교 Google 계정으로 로그인해 주세요.",
+  "external-account-not-approved": "이 Google 계정은 한곳 사용 승인을 받지 않았습니다. 담당 관리자에게 계정 승인을 요청해 주세요.",
+  "account-inactive": "비활성화된 계정입니다. 관리자에게 문의해 주세요.",
   "invalid-callback": "로그인 요청이 만료되었습니다. 다시 시도해 주세요.",
   "oauth-failed": "Google 로그인을 완료하지 못했습니다.",
   "not-configured": "로그인 설정이 아직 완료되지 않았습니다.",

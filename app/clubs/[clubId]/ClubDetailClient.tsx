@@ -1,10 +1,14 @@
 "use client";
 
 import Link from "next/link";
+import { useEffect,useState } from "react";
 import { ClubCategoryIcon,clubCategoryVisual } from "../../components/ClubCategoryIcon";
 import { FavoriteButton } from "../../components/FavoriteButton";
 import { HeaderAccount,HeaderSessionProvider } from "../../components/HeaderSession";
+import MobileBottomNav from"../../components/MobileBottomNav";
 import type{ClubSource}from"../../lib/clubs";
+import { applicationPeriodStatus,formatApplicationPeriodDate,type ApplicationPeriodSnapshot } from "../../lib/application-period";
+import { applicationAvailability } from "../../lib/clubs";
 
 const splitItems=(value:string)=>value.split(/\n|￭/).map(item=>item.trim()).filter(Boolean);
 const splitCareers=(value:string)=>value.split(/\n|,|\/|·/).map(item=>item.trim()).filter(item=>item&&item!=="전체");
@@ -17,7 +21,10 @@ const DetailIcon=({type}:{type:"students"|"layers"|"location"|"category"})=>{
 };
 
 export default function ClubDetailClient({club}:{club:ClubSource}){
- const activities=splitItems(club.activities);const careers=splitCareers(club.career);
+ const activities=splitItems(club.activities);const careers=splitCareers(club.career);const[period,setPeriod]=useState<ApplicationPeriodSnapshot|null>(null);const availability=applicationAvailability(club.recruitment_status);
+ useEffect(()=>{fetch("/api/application-period",{cache:"no-store"}).then(response=>response.json()).then((result:ApplicationPeriodSnapshot)=>setPeriod({...result,status:applicationPeriodStatus(result,new Date(result.serverNow))})).catch(()=>setPeriod({startAt:null,endAt:null,status:"not_configured",serverNow:new Date().toISOString()}))},[]);
+ const applyControl=!period?<span className="club-apply-cta is-disabled" aria-disabled="true">신청 기간 확인 중</span>:period.status==="before"?<span className="club-apply-cta is-disabled" aria-disabled="true">{period.startAt?`${formatApplicationPeriodDate(period.startAt)}부터 신청 가능`:"신청 기간 전"}</span>:period.status==="not_configured"?<span className="club-apply-cta is-disabled" aria-disabled="true">신청 기간 미설정</span>:period.status==="closed"?<span className="club-apply-cta is-disabled" aria-disabled="true">신청 종료</span>:availability==="open"?<Link className="club-apply-cta" href={`/clubs/${club.club_id}/apply`}>신청하기</Link>:availability==="inquiry"?<span className="club-apply-cta is-disabled" aria-disabled="true">가입 문의</span>:<span className="club-apply-cta is-disabled" aria-disabled="true">모집 마감</span>;
+ const applyNote=!period?"신청 가능 여부를 확인하고 있습니다.":period.status==="before"&&period.startAt?`${formatApplicationPeriodDate(period.startAt)}부터 신청할 수 있습니다.`:period.status==="not_configured"?"현재 신청 기간이 설정되지 않았습니다.":period.status==="closed"?"신청 기간이 종료되었습니다.":period.status==="open"&&availability==="inquiry"?"담당자에게 가입 가능 여부를 문의해 주세요.":period.status==="open"&&availability==="closed"?"이 동아리의 모집이 마감되었습니다.":"";
  return <main className="app-shell club-detail-page">
   <HeaderSessionProvider><header className="club-detail-header"><Link className="detail-back" href="/clubs" aria-label="동아리 목록으로">‹</Link><Link className="brand" href="/" aria-label="한곳 홈"><img className="brand-logo" src="/hangot-logo.png" alt="" width="36" height="36"/><span>한<span className="brand-accent">곳</span></span></Link><HeaderAccount/></header></HeaderSessionProvider>
   <article className="club-detail-main">
@@ -33,9 +40,9 @@ export default function ClubDetailClient({club}:{club:ClubSource}){
     <section className="detail-info-card" id="activities"><h2>주요 활동</h2>{activities.length?<ul>{activities.map((item,index)=><li key={`${item}-${index}`}><span aria-hidden="true">✓</span>{item}</li>)}</ul>:<p>등록된 주요 활동 정보가 없습니다.</p>}</section>
     <section className="detail-data-grid" id="inquiry"><div><span><DetailIcon type="location"/></span><dl><dt>활동 장소</dt><dd>{club.location||"추후 안내"}</dd></dl></div><div><span><DetailIcon type="layers"/></span><dl><dt>동아리 유형</dt><dd>{club.selection_type}</dd></dl></div><div><span><DetailIcon type="category"/></span><dl><dt>분야</dt><dd>{club.category}</dd></dl></div><div><span><DetailIcon type="students"/></span><dl><dt>대상 학년</dt><dd>{club.grade||"전 학년"}</dd></dl></div></section>
     {careers.length>0&&<section className="detail-info-card" id="careers"><h2>관련 진로</h2><div className="career-chips">{careers.map((career,index)=><span key={`${career}-${index}`}>{career}</span>)}</div></section>}
-    <div className="club-detail-actions"><FavoriteButton clubId={club.club_id} clubName={club.club_name} variant="detailIcon"/><Link className="club-apply-cta" href={`/clubs/${club.club_id}/apply`}>신청하기</Link></div>
+    <div className="club-detail-actions"><FavoriteButton clubId={club.club_id} clubName={club.club_name} variant="detailIcon"/>{applyControl}{applyNote&&<p className="application-period-note" role="status">{applyNote}</p>}</div>
    </div>
   </article>
-  <nav className="mobile-nav" aria-label="모바일 메뉴"><a href="/"><span>⌂</span>홈</a><a className="active" href="/clubs"><span>⌕</span>동아리</a><a href="/my/applications"><span>▣</span>내 신청</a><a href="/board"><span>▤</span>게시판</a><a href="/questions"><span>◌</span>질의응답</a></nav>
+  <MobileBottomNav/>
  </main>;
 }

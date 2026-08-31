@@ -4,10 +4,13 @@ import { useEffect, useMemo, useState } from "react";
 import { ClubCategoryIcon,clubCategoryVisual } from "../components/ClubCategoryIcon";
 import { FavoriteButton,useFavorites } from "../components/FavoriteButton";
 import { HeaderAccount, HeaderSessionProvider } from "../components/HeaderSession";
+import MobileBottomNav from"../components/MobileBottomNav";
+import type{ApplicationPeriodStatus}from"../lib/application-period";
 
 type Club={club_id:string;club_name:string;category:string;career:string;introduction:string;activities:string;location:string;selection_type:string;poster_url:string;recruitment_status:string;visible:boolean;color?:string;icon?:string;grade?:string};
 type Sort="name"|"recruiting"|"category";
 const openStatus=(value:string)=>["모집중","추가모집중","신청가능"].includes(value.replace(/\s+/g,""));
+const combinedRecruitmentLabel=(status:string,period:ApplicationPeriodStatus|null)=>{if(!openStatus(status)||period==="open"||!period)return status;if(period==="before")return "신청 기간 전";if(period==="closed")return "신청 종료";return "신청 기간 미설정"};
 const categoryDescriptions:Record<string,string>={
  "인문·사회":"언어, 역사, 철학, 경영 등",
  "과학·공학":"과학, 수학, 공학, IT 등",
@@ -16,8 +19,9 @@ const categoryDescriptions:Record<string,string>={
 };
 
 export default function ClubsPage(){
- const[clubs,setClubs]=useState<Club[]>([]);const[query,setQuery]=useState("");const[category,setCategory]=useState("전체");const[sort,setSort]=useState<Sort>("name");const[loading,setLoading]=useState(true);const[favoritesOnly,setFavoritesOnly]=useState(false);const{isFavorite}=useFavorites();
+ const[clubs,setClubs]=useState<Club[]>([]);const[query,setQuery]=useState("");const[category,setCategory]=useState("전체");const[sort,setSort]=useState<Sort>("name");const[loading,setLoading]=useState(true);const[favoritesOnly,setFavoritesOnly]=useState(false);const[periodStatus,setPeriodStatus]=useState<ApplicationPeriodStatus|null>(null);const{isFavorite}=useFavorites();
  useEffect(()=>{fetch("/api/clubs").then(r=>r.json()).then(data=>setClubs(data.clubs??[])).finally(()=>setLoading(false))},[]);
+ useEffect(()=>{fetch("/api/application-period",{cache:"no-store"}).then(response=>response.json()).then(data=>setPeriodStatus(data.status)).catch(()=>setPeriodStatus("not_configured"))},[]);
  const categories=useMemo(()=>["전체",...Array.from(new Set(clubs.map(club=>club.category))).filter(Boolean)],[clubs]);
  const categoryCounts=useMemo(()=>clubs.reduce<Record<string,number>>((counts,club)=>(counts[club.category]=(counts[club.category]??0)+1,counts),{}),[clubs]);
  const visible=useMemo(()=>{const normalized=query.trim().toLocaleLowerCase("ko-KR");const rows=clubs.filter(club=>(category==="전체"||club.category===category)&&(!favoritesOnly||isFavorite(club.club_id))&&(!normalized||[club.club_name,club.category,club.career,club.introduction,club.activities].join(" ").toLocaleLowerCase("ko-KR").includes(normalized)));return [...rows].sort((a,b)=>sort==="recruiting"?Number(openStatus(b.recruitment_status))-Number(openStatus(a.recruitment_status))||a.club_name.localeCompare(b.club_name,"ko"):sort==="category"?a.category.localeCompare(b.category,"ko")||a.club_name.localeCompare(b.club_name,"ko"):a.club_name.localeCompare(b.club_name,"ko"))},[clubs,query,category,sort,favoritesOnly,isFavorite]);
@@ -31,9 +35,9 @@ export default function ClubsPage(){
    <div className="clubs-results"><h2>{visible.length}개의 동아리</h2><label><span className="sr-only">정렬</span><select value={sort} onChange={e=>setSort(e.target.value as Sort)}><option value="name">이름순</option><option value="recruiting">모집 우선</option><option value="category">분야순</option></select></label></div>
    {loading?<div className="clubs-loading">동아리를 불러오는 중입니다.</div>:visible.length?<div className="clubs-list">{visible.map(club=><article className="explorer-card" key={club.club_id} role="link" tabIndex={0} aria-label={`${club.club_name} 상세 정보 보기`} onClick={()=>location.assign(`/clubs/${club.club_id}`)} onKeyDown={e=>{if(e.key==="Enter"||e.key===" "){e.preventDefault();location.assign(`/clubs/${club.club_id}`)}}}>
     <div className="explorer-image" style={{background:club.color||clubCategoryVisual(club.category).background}}>{club.poster_url?<img src={club.poster_url} alt=""/>:<span className={`club-category-fallback category-${clubCategoryVisual(club.category).tone}`}><ClubCategoryIcon category={club.category}/></span>}</div>
-    <div className="explorer-body"><div className="club-card-top"><div className="explorer-badges"><span className={openStatus(club.recruitment_status)?"is-open":""}>{club.recruitment_status}</span><span>{club.category}</span></div><FavoriteButton clubId={club.club_id} clubName={club.club_name}/></div><h3>{club.club_name}</h3><p>{club.introduction}</p><div className="explorer-grade"><span>대상 학년</span><b>{club.grade||"전 학년"}</b></div></div><span className="explorer-chevron" aria-hidden="true">›</span>
+    <div className="explorer-body"><div className="club-card-top"><div className="explorer-badges"><span className={openStatus(club.recruitment_status)&&periodStatus==="open"?"is-open":""}>{combinedRecruitmentLabel(club.recruitment_status,periodStatus)}</span><span>{club.category}</span></div><FavoriteButton clubId={club.club_id} clubName={club.club_name}/></div><h3>{club.club_name}</h3><p>{club.introduction}</p><div className="explorer-grade"><span>대상 학년</span><b>{club.grade||"전 학년"}</b></div></div><span className="explorer-chevron" aria-hidden="true">›</span>
    </article>)}</div>:<div className="clubs-loading">조건에 맞는 동아리가 없습니다.</div>}
   </section>
-  <nav className="mobile-nav" aria-label="모바일 메뉴"><a href="/"><span>⌂</span>홈</a><a className="active" href="/clubs"><span>⌕</span>동아리</a><a href="/my/applications"><span>▣</span>내 신청</a><a href="/board"><span>▤</span>게시판</a><a href="/questions"><span>◌</span>질의응답</a></nav>
+  <MobileBottomNav/>
  </main>
 }

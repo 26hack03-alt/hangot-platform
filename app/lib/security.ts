@@ -1,4 +1,5 @@
 import { ensureUser, findUserByAuthId } from "./database/users";
+import { claimAllowedAccount } from "./database/allowed-accounts";
 import { providerUser, type GoogleAuthUser } from "./supabase-auth";
 
 export type Role = "student" | "club_manager" | "admin";
@@ -23,12 +24,12 @@ export function hasPersonalDataPattern(value: string) {
   return /[\w.+-]+@[\w.-]+\.[A-Za-z]{2,}|01[016789][-\s]?\d{3,4}[-\s]?\d{4}|\d{6}[-\s]?[1-4]\d{6}|(?:카톡|텔레그램|인스타|연락처|주소)\s*[:：]?\s*\S+/i.test(value);
 }
 export function sheetSafe(value: string) {
-  return /^[=+\-@]/.test(value) ? `'${value}` : value;
+  return /^[\u0000-\u0020]*[=+\-@]/.test(value) ? `'${value}` : value;
 }
 export async function currentUser() {
   const authUser = await providerUser();
   if (!authUser) return null;
-  const user = await ensureGoogleAppUser(authUser);
+  const user = await findUserByAuthId(authUser.id);
   return user?.isActive ? user : null;
 }
 export async function ensureGoogleAppUser(authUser: GoogleAuthUser) {
@@ -37,6 +38,12 @@ export async function ensureGoogleAppUser(authUser: GoogleAuthUser) {
   const now = new Date();
   const alias = `학생-${(await sha256(authUser.id)).slice(0, 4).toUpperCase()}`;
   return ensureUser({ id: id("usr"), authUserId: authUser.id, alias, recoveryHash: `google:${authUser.id}`, now });
+}
+export async function claimApprovedGoogleAppUser(authUser:GoogleAuthUser,email:string){
+  const existing=await findUserByAuthId(authUser.id);if(existing)return existing;
+  const userId=id("usr"),alias=`학생-${(await sha256(authUser.id)).slice(0,4).toUpperCase()}`,now=new Date().toISOString();
+  const claimed=await claimAllowedAccount({email,authUserId:authUser.id,userId,alias,recoveryHash:`google:${authUser.id}`,now});
+  return claimed?findUserByAuthId(authUser.id):null;
 }
 export async function requireUser(roles?: Role[]) {
   const user = await currentUser();
